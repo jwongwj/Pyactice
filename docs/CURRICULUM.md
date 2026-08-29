@@ -1,7 +1,7 @@
 # Curriculum design — a ladder, not a bank
 
-**Status:** built — categories 1 and 4, the prerequisite graph, and the curriculum view in
-the browser. Categories 2 and 3 are designed and unwritten. Supersedes the framing in
+**Status:** built — all four categories, the prerequisite graph, and the curriculum view
+in the browser. Nothing is left planned. Supersedes the framing in
 `docs/PLATFORM_PLAN.md`, which planned a *bank of verified problems*. A bank is a test
 suite. This describes the learning structure that sits on top of it.
 
@@ -37,7 +37,7 @@ difficulty label.
 Four categories. Each is a different kind of learning, not just a harder version of the
 last. The numbering (`1.1`, `2.7`) is stable, and is what URLs and session logs carry.
 
-**43 subtopics, 98 exercises written and 135 planned — 233 in total.** Those counts are
+**43 subtopics, 279 exercises, nothing still planned.** Those counts are
 not maintained by hand: `graph.py:validate()` proves the prerequisites are acyclic, that
 every problem key the ladder names is in the bank, and that nothing in the bank is missing
 from the ladder, so the ladder and the bank cannot drift apart.
@@ -87,13 +87,13 @@ The **use** half is written as drill units, exactly like category 1. The **build
 not, and cannot be: a MinStack, a dynamic array, an LRU cache and a hash map with chaining
 are classes with several methods and internal state, which is a `design` problem, not a
 one-function drill. Splitting them into drills would destroy the thing being taught, since
-the point is that the methods share a representation. They stay counted as `planned` in
-`curriculum/graph.py` until they arrive in their own directories.
+the point is that the methods share a representation. All twelve have since arrived in
+their own directories, which is why `planned` now reads zero across the ladder.
 
 ### 3. Algorithms
 
 *"I can find the approach."* Patterns, each with the cue that should make you reach for
-it. Eighteen subtopics, 62 exercises, one written: `two_sum_pairs` under 3.2.
+it. Eighteen subtopics, 92 exercises — all written.
 
 binary search · two pointers · sliding window · DFS · BFS · backtracking · Dijkstra ·
 A\* · topological sort · dynamic programming · greedy · sorting algorithms · prefix sums ·
@@ -345,27 +345,24 @@ Done:
 6. **Curriculum view in the browser IDE**, replacing the flat picker: the category rail,
    the frontier, weak spots from failing tags, and search across subtopics and problems.
 
+7. **Categories 2 and 3**, subtopic by subtopic, in the order `docs/CATALOGUE.md` gave.
+   The ladder is complete: forty-three subtopics, 279 exercises, both gates passed on
+   every one. The twelve **build** exercises arrived last, as `design` problems rather
+   than drills — a MinStack, a dynamic array, an LRU cache, a circular buffer, a hash map
+   with chaining, a Trie, a BST, a tree codec, a streaming median, a doubly linked list,
+   a two-stack queue and the union-find structure. Each is a class with several methods
+   sharing internal state, which is exactly what a one-function drill cannot express.
+
 Remaining:
 
-7. **Constraint-aware clearing** — a drill that passes while violating its constraint is
+8. **Constraint-aware clearing** — a drill that passes while violating its constraint is
    attempted, not cleared.
-8. **Code blocks inside list items** — the last of B10 that matters. Emphasis, ordered
+9. **Code blocks inside list items** — the last of B10 that matters. Emphasis, ordered
    lists, `<hr>` and wrapped list items were fixed when the Lesson tab shipped and made
    the gaps visible; a corpus test now renders all 38 documents and fails on raw markup.
    A fenced block inside a numbered step still closes the list, which constrains how a
    worked example can sit inside one. No lesson needs it yet.
-9. **`./pfs learn`** — the "what next" surface on the CLI. The browser has it; the
-   terminal still lists a flat bank.
-10. **Categories 2 and 3**, subtopic by subtopic, in the order `docs/CATALOGUE.md` gives.
-    **The ladder is complete.** Forty-three subtopics, 279 exercises, both gates passed on
-    every one. The twelve **build** exercises arrived last, as `design` problems rather
-    than drills: a MinStack, a dynamic array, an LRU cache, a circular buffer, a hash map
-    with chaining, a Trie, a BST, a tree codec, a streaming median, a doubly linked list,
-    a two-stack queue and the union-find structure. Each is a class with several methods
-    sharing internal state, which is exactly what a one-function drill cannot express. What remains besides the algorithms is every build
-    exercise: a MinStack, a dynamic array, an LRU cache, a circular buffer, a hash map
-    with chaining, a Trie, a BST, a streaming median and the union-find structure itself
-    are *classes*, so they arrive as `design` problems rather than inside a drill unit.
-    Twelve of them, and they are the reason category 2 reads 78 of 90 rather than 90 of 90.
+10. **`./pfs learn`** — the "what next" surface on the CLI. The browser has it; the
+    terminal still lists a flat bank.
 
 Each step lands with tests and `tests/run_all.sh` green, as before.

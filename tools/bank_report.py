@@ -29,6 +29,12 @@ from harness.loader import BROKEN, all_problems  # noqa: E402
 from harness.model import KIND_DRILL, KIND_PROGRESSIVE  # noqa: E402
 
 TEACHING = ("APPROACH.md", "EXPLANATION.md")
+# A progressive problem discloses across four levels, so its teaching artifacts are the
+# contract and the decision ledger. harness/validate.py requires exactly those of it and
+# never asks it for an approach, on the reasoning that a walkthrough written before the
+# attempt is the answer key. Measuring the capstones against TEACHING anyway reported all
+# five as 0/2 against files nothing requires, nothing reads, and none should contain.
+PROGRESSIVE_TEACHING = ("CONTRACT.md", "DECISIONS.md")
 
 
 def rows():
@@ -37,10 +43,17 @@ def rows():
         oracle = ROOT / "solutions" / f"{key}.py"
         snapshots = sorted((ROOT / "solutions" / key).glob("level*.py"))
         hidden = sum(1 for c in problem.cases if not c.visible)
-        # A drill unit teaches with its LESSON; a problem teaches with an approach and
-        # an explanation. Counting the same two files for both reported every unit as
-        # 0/2 while its lesson sat right there.
-        wanted = ("LESSON.md",) if problem.kind == KIND_DRILL else TEACHING
+        # Each kind teaches with a different artifact, so the ledger has to ask each for
+        # what it actually owes. Counting one pair for all three reported every drill as
+        # 0/2 while its lesson sat right there, and every capstone as 0/2 for a pair it is
+        # deliberately not allowed to have. This mirrors the per-kind requirement in
+        # harness/validate.py, which is the gate that enforces it.
+        if problem.kind == KIND_DRILL:
+            wanted = ("LESSON.md",)
+        elif problem.kind == KIND_PROGRESSIVE:
+            wanted = PROGRESSIVE_TEACHING
+        else:
+            wanted = TEACHING
         docs = [name for name in wanted if (directory / name).exists()]
         yield {
             "key": key,

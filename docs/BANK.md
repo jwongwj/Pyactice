@@ -16,7 +16,7 @@
 | `backtracking.partition_equal` | drill | algorithms | hard | 1 | 6 | 2 | **no** | - | 1/1 |
 | `backtracking.permutations` | drill | algorithms | hard | 1 | 4 | 1 | **no** | - | 1/1 |
 | `backtracking.subsets` | drill | algorithms | hard | 1 | 4 | 1 | **no** | - | 1/1 |
-| `banking` | progressive | - | - | 4 | 41 | 31 | **no** | - | 0/2 |
+| `banking` | progressive | - | - | 4 | 41 | 31 | **no** | - | 2/2 |
 | `bfs.distances_from` | drill | algorithms | medium | 1 | 6 | 2 | **no** | - | 1/1 |
 | `bfs.ladder_length` | drill | algorithms | medium | 1 | 7 | 2 | **no** | - | 1/1 |
 | `bfs.min_multiply` | drill | algorithms | medium | 1 | 12 | 4 | **no** | - | 1/1 |
@@ -35,7 +35,7 @@
 | `bits.subset_at` | drill | algorithms | medium | 1 | 8 | 4 | **no** | - | 1/1 |
 | `bst` | design | data-structures | hard | 1 | 14 | 8 | yes | - | 2/2 |
 | `circular_buffer` | design | data-structures | medium | 1 | 14 | 6 | yes | - | 2/2 |
-| `cloud_storage` | progressive | - | - | 4 | 46 | 36 | yes | - | 0/2 |
+| `cloud_storage` | progressive | - | - | 4 | 46 | 36 | yes | - | 2/2 |
 | `dfs.all_paths` | drill | algorithms | medium | 1 | 6 | 2 | **no** | - | 1/1 |
 | `dfs.flood_fill` | drill | algorithms | medium | 1 | 10 | 3 | **no** | - | 1/1 |
 | `dfs.has_path` | drill | algorithms | medium | 1 | 9 | 3 | **no** | - | 1/1 |
@@ -71,8 +71,8 @@
 | `errors.read_lines` | drill | basic-python | easy | 1 | 3 | 2 | **no** | - | 1/1 |
 | `errors.require_positive` | drill | basic-python | easy | 1 | 3 | 1 | **no** | - | 1/1 |
 | `errors.total_or_zero` | drill | basic-python | easy | 1 | 3 | 1 | **no** | - | 1/1 |
-| `file_hosting` | progressive | - | - | 4 | 58 | 45 | **no** | - | 0/2 |
-| `file_system` | progressive | - | - | 4 | 60 | 40 | yes | 4 | 0/2 |
+| `file_hosting` | progressive | - | - | 4 | 58 | 45 | **no** | - | 2/2 |
+| `file_system` | progressive | - | - | 4 | 60 | 40 | yes | 4 | 2/2 |
 | `floyd.cycle_length` | drill | algorithms | hard | 1 | 5 | 2 | **no** | - | 1/1 |
 | `floyd.cycle_start` | drill | algorithms | hard | 1 | 5 | 2 | **no** | - | 1/1 |
 | `floyd.find_duplicate` | drill | algorithms | hard | 1 | 5 | 2 | **no** | - | 1/1 |
@@ -122,7 +122,7 @@
 | `heaps.max_heap_order` | drill | data-structures | medium | 1 | 4 | 2 | **no** | - | 1/1 |
 | `heaps.merge_k` | drill | data-structures | medium | 1 | 6 | 3 | **no** | - | 1/1 |
 | `heaps.top_k_frequent` | drill | data-structures | medium | 1 | 6 | 4 | **no** | - | 1/1 |
-| `in_memory_db` | progressive | - | - | 4 | 50 | 39 | **no** | - | 0/2 |
+| `in_memory_db` | progressive | - | - | 4 | 50 | 39 | **no** | - | 2/2 |
 | `intervals.erase_overlaps` | drill | algorithms | medium | 1 | 6 | 2 | **no** | - | 1/1 |
 | `intervals.free_slots` | drill | algorithms | medium | 1 | 9 | 3 | **no** | - | 1/1 |
 | `intervals.insert_interval` | drill | algorithms | medium | 1 | 9 | 3 | **no** | - | 1/1 |
@@ -554,15 +554,4 @@ No oracle at `solutions/<key>.py`, so `./pfs validate` cannot re-run the differe
 - `unpacking.regroup`
 - `unpacking.reshape`
 - `unpacking.swapped`
-
-## Missing teaching material
-
-No `APPROACH.md` and/or `EXPLANATION.md`, so the platform can show the
-answer but cannot explain it:
-
-- `banking`
-- `cloud_storage`
-- `file_hosting`
-- `file_system`
-- `in_memory_db`
 

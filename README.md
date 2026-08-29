@@ -1,11 +1,20 @@
-# Pyactice — a Python practice rig for the CodeSignal Industry Coding Framework
+# Pyactice — practise the pieces, not the puzzle
 
-A timed, level-gated, self-checking practice environment for the 90-minute
-CodeSignal assessment where one problem unfolds across four progressive levels —
-and, around it, a 279-exercise curriculum that builds the Python you need to sit it.
+A Python practice ladder: **279 exercises**, each one idiom or one function, ordered by
+what they require rather than by how hard someone labelled them. Then a capstone that
+has no algorithm in it at all.
 
-Python 3.10+. **No dependencies** — the real assessment gives you the standard
-library and nothing else, so neither does this.
+Python 3.10+. **No dependencies** — the assessment this was built for gives you the
+standard library and nothing else, so neither does this.
+
+This README has two jobs: **Part 1** describes the repo — what it is, how it is laid
+out, and what an exercise actually looks like. **Part 2** describes how it was built,
+because almost all of it was written by an AI agent and the interesting part is the
+machinery that made that trustworthy.
+
+---
+
+# Part 1 — What this is
 
 ## Start here
 
@@ -14,21 +23,15 @@ git clone <this repo> && cd Pyactice
 ./pfs ui
 ```
 
-That opens a CodeSignal-style IDE in your browser at `http://127.0.0.1:8765`. Pick a
-problem and the clock starts.
+That opens a practice IDE in your browser at `http://127.0.0.1:8765`.
 
-![A timed attempt: statement on the left, editor top right, test results below](docs/img/attempt.png)
+![The home screen: four categories, and the next thing on your path](docs/img/home.png)
 
+Four categories, and — because every subtopic declares what it requires — the next
+thing on your path. Pick it and you get a lesson, then an exercise, then a real Python
+editor with the tests underneath.
 
-Everything you need is in that one window: the statement on the left, a real Python
-editor with syntax highlighting in the middle, test results underneath. Levels unlock as
-you clear them, the clock runs down, and your code autosaves.
-
-**⌘↵ runs the tests.** Do it constantly — partial credit is per test.
-
-When you clear a level, a prompt offers to paste the next level's method stubs into your
-file. When you're done or out of time, hit **Finish** for the debrief, then **Read the
-answer key** for every ambiguity and how it resolves.
+**⌘↵ runs the tests.** Do it constantly; partial credit is per test.
 
 No install, no dependencies — it's `http.server` and a vendored copy of CodeMirror.
 
@@ -36,17 +39,161 @@ No install, no dependencies — it's `http.server` and a vendored copy of CodeMi
 <summary>Prefer the terminal? The same session works from the CLI.</summary>
 
 ```bash
-./pfs start file_hosting   # starts the clock, writes workspace/file_hosting/solution.py
-./pfs spec                 # the current level's statement
-./pfs test                 # clearing every unlocked level unlocks the next
-./pfs stubs --append       # add the newly unlocked level's stubs
-./pfs finish               # debrief
-./pfs decisions            # the answer key (refuses while the clock runs)
+./pfs list                    # everything in the bank
+./pfs start lists.flipped     # a drill — no clock
+./pfs test                    # run it
+./pfs start file_hosting      # a capstone — starts the 90-minute clock
 ```
 
 The browser IDE and the CLI share one session file and one workspace file, so you can
 start in one and finish in the other.
 </details>
+
+## Why the pieces
+
+Most practice hands you a whole problem. You either see the trick or you don't, and
+when you don't, the lesson on offer is "you should have seen the trick" — which is not
+a lesson. That format is a filter. It is very good at sorting people and very bad at
+teaching them.
+
+This breaks the same material into chunks small enough to actually drill.
+
+![A drill: the Lesson tab teaches, the Task tab sets the exercise](docs/img/drill-lesson.png)
+
+- **One idiom, one function, no clock.** A drill has a single point. `FLIPPED` is about
+  the two-pointer swap, not about writing a program around it.
+- **Ordered by prerequisite, not difficulty.** `easy / medium / hard` tells you nothing
+  about readiness — "easy" graph problems are harder than "medium" string problems for
+  someone who has never built an adjacency list. Every subtopic declares what it
+  requires, which is what lets the home screen answer the only question a learner
+  actually has: *what should I do next?*
+- **The constraint is the exercise.** 223 of the 261 drills carry an AST constraint, so
+  the grader checks the *shape* of your code as well as its return value.
+- **A lesson before the exercise.** Each of the 38 units has a `LESSON.md` that teaches
+  the idea before you write anything.
+
+The result is a recap rather than a gauntlet. You already half-know most of this; the
+ladder exists to find out which halves are missing, an hour at a time.
+
+## What an exercise looks like
+
+Drills are declared as data, not code paths. This is the first drill in the bank, from
+[curriculum/1-basic-python/01-for-loops/unit.py](curriculum/1-basic-python/01-for-loops/unit.py):
+
+```python
+Method(
+    display="SHOUT",
+    signature="(names: list[str]) -> list[str]",
+    doc="Every name in upper case, in the same order.",
+    constraint_note="write it as a comprehension; no `for` statement",
+    constraints=(
+        Forbid(("for",), because="a one-to-one transformation is what a comprehension is for",
+               hint="[name.upper() for name in names]"),
+    ),
+)
+```
+
+A hand-rolled loop returns the right list and still fails, because the lesson was the
+comprehension and the test would otherwise be measuring the output. "Correct" and "not
+the point of this drill" are reported as different verdicts.
+
+Two rules keep that from becoming a trick question. The constraint is printed into the
+stub docstring via `constraint_note`, so it is never a surprise; and every `Forbid`
+carries a `because` and a `hint`, so a failure teaches instead of just refusing.
+
+One `unit.py` holds a unit's drills, their constraints and their cases; `PROBLEMS =
+split(UNIT)` at the foot of the file turns one unit into twelve independent problems,
+each with its own key, session and progress.
+
+## What is in the bank
+
+279 exercises, 1827 test cases, 944 of them hidden. Four categories, 43 subtopics.
+
+| | category | subtopics | exercises | cases | what it is |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Basic Python | 8 | 92 | 314 | The language does more than you are using. Short drills, one idiom each. |
+| 2 | Data Structures | 12 | 90 | 594 | One per structure. Use it, then build it — using a stack teaches nothing about stacks. |
+| 3 | Algorithms | 18 | 92 | 664 | By name, with the cue that should make you reach for each one. |
+| 4 | Industry practices | 5 | 5 | 255 | Everything above, at once, under a clock. |
+
+They come in three kinds.
+
+**Drills** (261, in 38 units) are the ladder itself: one idiom, one function, no clock.
+
+**Build exercises** (13) are one class each, from scratch — `LRU_CACHE`, `MIN_STACK`,
+`TRIE`, `STREAMING_MEDIAN`, `UNION_FIND`. No levels and no clock, but a full sequence of
+operations to satisfy. Category 2's rule is that you use a structure and then build it,
+because using a stack teaches you nothing about stacks.
+
+**Progressive problems** (5) are the capstone below.
+
+## The capstone — senior rounds, where there is no algorithm
+
+Senior interviews increasingly do not ask you to find an algorithm. You get a class, you
+implement it, and then the requirements keep arriving. Nothing to spot; everything to
+build.
+
+![A timed attempt: statement on the left, editor top right, test results below](docs/img/attempt.png)
+
+What that measures is whether the state you designed in the first ten minutes survives
+the requirements you have not read yet — and whether you can absorb an ambiguous spec
+change with 40 minutes on the clock without breaking the levels you already passed.
+Categories 1–3 give you the pieces. This is the round where having the pieces is not the
+point.
+
+CodeSignal's Industry Coding Framework is the named instance of this format, and these
+five reproduce it: one class, four levels, 90 minutes. So the rig simulates the parts
+that actually bite.
+
+- **Levels are locked.** You cannot read level 3 while designing level 1, which is
+  exactly the constraint that makes level 1 hard. Clear a level and a prompt offers to
+  paste the next one's stubs into your file.
+- **The clock runs.** 90 minutes, visible, and it does not pause.
+- **Earlier levels keep being tested.** Every run re-runs every level at or below your
+  current one, so a level-3 refactor that breaks level 1 shows up immediately — the most
+  common real failure, and the one no static practice catches.
+- **Most tests are hidden.** You see the case name and where it failed, not the answer.
+  `--reveal` exists for after the session.
+- **Exam mode strips even that.** `--blind` reduces a failure to an opaque test number,
+  its outcome, and whatever your own code printed — which is all the real assessment
+  gives you. The default feedback here (case names, tags, operation shapes) is a crutch
+  worth practising without before it matters.
+- **The statements are under-specified on purpose,** the way the real ones are. Every
+  ambiguity has a documented resolution in the problem's `DECISIONS.md`, which the CLI
+  refuses to show you while the clock is running.
+- **It measures how you worked, not just what you scored** — time per level against
+  budget, runs per level, and "stuck streaks" where several consecutive runs failed the
+  same case, which is the signature of guessing.
+
+| key | problem | level 1 |
+| --- | --- | --- |
+| `file_hosting` | In-memory file hosting service | upload, read and copy files |
+| `cloud_storage` | Cloud storage | add, size and delete files |
+| `in_memory_db` | In-memory key-value database | set, read and delete fields |
+| `banking` | Banking system | accounts, deposits and transfers |
+| `file_system` | Hierarchical file system | make directories, create, read and list |
+
+Levels 2–4 are deliberately not listed. Knowing the *general* skeleton is fair prep and
+[docs/ASSESSMENT_BRIEF.md](docs/ASSESSMENT_BRIEF.md) teaches it; knowing which specific
+operations arrive at level 3 of *this* problem is the answer to the only question level 1
+asks.
+
+`file_hosting` reproduces CodeSignal's published sample question verbatim; the rest are
+reconstructions of widely reported variants. Provenance and confidence for each claim is
+in [docs/ASSESSMENT_BRIEF.md](docs/ASSESSMENT_BRIEF.md).
+
+They are deliberately not clones of each other. Two put the timestamp first and one puts
+it last; two signal failure by raising and the rest by returning `None`; the level-4 turn
+is a rollback, a re-anchored restore, a collision-aware restore, a merge, and symbolic
+links. Rotating between them is what stops you memorising one answer.
+
+`file_system` is the odd one out and the hardest, on purpose. The other four store a flat
+map of names, so there is no wrong design to make at level 1. This one is a real tree: a
+flat `dict[path]` clears most of level 1 in five minutes and then costs you level 3
+(permissions keyed by path are orphaned by the first `MV`) and level 4 (links have to be
+resolved mid-path by every operation you already wrote). That "your level-1 design
+decision comes due at level 3" pressure is the thing the progressive format is built to
+measure, and no other problem here exercises it.
 
 ### Retakes are unlimited
 
@@ -69,43 +216,14 @@ Don't stop the clock to argue with it. Log it and keep moving:
 ./pfs dispute l3_zero_ttl_is_dead_on_arrival "a ttl of 0 should mean no expiry"
 ```
 
-## Why not just do LeetCode
-
-This format fails people for reasons LeetCode does not measure. There is no
-algorithmic trick in it. What it measures is whether the state you designed in the
-first ten minutes survives the requirements you have not read yet — and then whether
-you can absorb an ambiguous spec change with 40 minutes on the clock without
-breaking the levels you already passed.
-
-So the rig simulates the parts that actually bite:
-
-- **Levels are locked.** You cannot read level 3 while designing level 1, which is
-  exactly the constraint that makes level 1 hard.
-- **The clock runs.** 90 minutes, visible, and it does not pause.
-- **Earlier levels keep being tested.** Every run re-runs every level at or below
-  your current one, so a level-3 refactor that breaks level 1 shows up immediately —
-  the most common real failure, and the one no static practice catches.
-- **Most tests are hidden.** You see the case name and where it failed, not the
-  answer. `--reveal` exists for after the session.
-- **Exam mode strips even that.** `--blind` reduces a failure to an opaque test
-  number, its outcome, and whatever your own code printed — which is all the real
-  assessment gives you. The default feedback here (case names, tags, operation
-  shapes) is a crutch worth practising without before it matters.
-- **The statements are under-specified on purpose,** the way the real ones are.
-  Every ambiguity has a documented resolution in the problem's `DECISIONS.md`, which
-  the CLI refuses to show you while the clock is running.
-- **It measures how you worked, not just what you scored** — time per level against
-  budget, runs per level, and "stuck streaks" where several consecutive runs failed
-  the same case, which is the signature of guessing.
-
 ## Commands
 
 | | |
 | --- | --- |
 | `./pfs ui` | **the browser IDE — start here** (`--port`, `--no-open`) |
-| `./pfs list` | the problem bank |
-| `./pfs start <problem>` | begin a timed attempt (`--minutes`, `--level` to drill, `--force` to reset the file) |
-| `./pfs start <problem> --blind` | exam mode: a failing test gives a number and your own output, nothing else |
+| `./pfs list` | the whole bank |
+| `./pfs start <key>` | begin an exercise — drills are untimed, the five capstones start a 90-minute clock (`--minutes`, `--level` to drill, `--force` to reset the file) |
+| `./pfs start <key> --blind` | exam mode: a failing test gives a number and your own output, nothing else |
 | `./pfs spec` | current level's statement + auto-generated worked examples |
 | `./pfs contract` | precise types and return shapes — **allowed during an attempt** |
 | `./pfs test` | run every unlocked level; all green unlocks the next |
@@ -114,62 +232,46 @@ So the rig simulates the parts that actually bite:
 | `./pfs dispute <case> "..."` | log a case you think is wrong, without stopping to argue |
 | `./pfs finish` | stop the clock and print the debrief |
 | `./pfs decisions` | the answer key for every ambiguity (refuses while a session is live) |
-| `./pfs answer <problem>` | a worked solution, `--level N` for levels 1..N only (refuses while live) |
+| `./pfs answer <key>` | a worked solution, `--level N` for levels 1..N only (refuses while live) |
 | `./pfs stats` | cross-session trends and your weakest concepts |
-| `./pfs validate` | self-check the problem bank |
+| `./pfs validate` | self-check the bank |
 
-## What is in the bank
+## Layout
 
-279 exercises, 1827 test cases, in four kinds.
+```
+Pyactice/
+├── pfs                     the only entry point; `./pfs ui` opens the browser IDE
+├── harness/                the rig — clock, runner, expectations, reporting, CLI
+├── webui/                  the browser IDE: stdlib http.server + vendored CodeMirror
+├── curriculum/             the ladder
+│   ├── graph.py            subtopics, prerequisites, and the keys each subtopic owns
+│   ├── 1-basic-python/      8 units ·  92 exercises · 314 cases
+│   ├── 2-data-structures/  12 units ·  90 exercises · 594 cases
+│   └── 3-algorithms/       18 units ·  92 exercises · 664 cases
+├── problems/<key>/         the 5 capstones — problem.py, tests.py, statement/,
+│                           CONTRACT.md, DECISIONS.md
+├── tools/                  bank_report.py, mutation_check.py, drill_mutation.py
+├── tests/                  run_all.sh, api_test.py, ui.test.js
+├── docs/                   brief, playbook, curriculum design, generated bank ledger
+├── workspace/              your code — gitignored
+├── sessions/               append-only event logs — gitignored
+└── solutions/              local oracles — gitignored, empty in git by design
+```
 
-![The home screen: four categories, and the next thing on your path](docs/img/home.png)
+A drill unit and a build exercise have different shapes, because they teach differently:
 
-**Drills** (261, in 38 units) are the curriculum: one idiom, one function, no clock.
-They sit in a graph of 43 subtopics across four categories — Basic Python, Data
-Structures, Algorithms, Industry practices — each with a `LESSON.md` that teaches the
-idea before you write anything. Most carry an AST constraint, so `FLIPPED` refuses to
-let you call `reversed()` and you have to write the two-pointer swap. The constraint is
-the exercise; without it you would reach for the library and learn nothing.
+```
+curriculum/1-basic-python/01-for-loops/     a drill unit
+├── LESSON.md      teaches the idea; one per unit, shared by every drill it splits into
+└── unit.py        the drills, their constraints and their cases — one self-contained
+                   file, because a numbered directory is not an importable package
 
-![A drill: the Lesson tab teaches, the Task tab sets the exercise](docs/img/drill-lesson.png)
-
-**Design problems** (12) are one class each, built from scratch — `LRU_CACHE`,
-`MIN_STACK`, `TRIE`, `STREAMING_MEDIAN`. No levels and no clock, but a full sequence
-of operations to satisfy.
-
-**Progressive problems** (5) are the real thing: one class, four levels, 90 minutes.
-
-| key | problem | level 1 |
-| --- | --- | --- |
-| `file_hosting` | In-memory file hosting service | upload, read and copy files |
-| `cloud_storage` | Cloud storage | add, size and delete files |
-| `in_memory_db` | In-memory key-value database | set, read and delete fields |
-| `banking` | Banking system | accounts, deposits and transfers |
-| `file_system` | Hierarchical file system | make directories, create, read and list |
-
-Levels 2–4 are deliberately not listed. Knowing the *general* skeleton is fair prep and
-[docs/ASSESSMENT_BRIEF.md](docs/ASSESSMENT_BRIEF.md) teaches it; knowing which specific
-operations arrive at level 3 of *this* problem is the answer to the only question level 1
-asks.
-
-`file_hosting` reproduces CodeSignal's published sample
-question verbatim; the rest are reconstructions of widely reported variants.
-Provenance and confidence for each claim is in
-[docs/ASSESSMENT_BRIEF.md](docs/ASSESSMENT_BRIEF.md).
-
-They are deliberately not clones of each other. Two put the timestamp first and one
-puts it last; two signal failure by raising and the rest by returning `None`; the
-level-4 turn is a rollback, a re-anchored restore, a collision-aware restore, a
-merge, and symbolic links. Rotating between them is what stops you memorising one
-answer.
-
-`file_system` is the odd one out and the hardest, on purpose. The other four store a
-flat map of names, so there is no wrong design to make at level 1. This one is a real
-tree: a flat `dict[path]` clears most of level 1 in five minutes and then costs you
-level 3 (permissions keyed by path are orphaned by the first `MV`) and level 4 (links
-have to be resolved mid-path by every operation you already wrote). That "your level-1
-design decision comes due at level 3" pressure is the thing the real progressive format
-is built to measure, and no other problem here exercises it.
+curriculum/2-data-structures/01-list/dynamic_array/     a build exercise
+├── problem.py     the methods and their cases
+├── statement.md
+├── APPROACH.md    how to think about it
+└── EXPLANATION.md the solution, line by line
+```
 
 ## Architecture
 
@@ -216,8 +318,8 @@ flowchart TB
     SO -.->|"./pfs validate"| LOAD
 ```
 
-The three-document split per problem is the design decision everything else hangs off,
-because it is what keeps an attempt honest:
+The three-document split per capstone problem is the design decision everything else
+hangs off, because it is what keeps an attempt honest:
 
 | file | contains | readable during an attempt? |
 | --- | --- | --- |
@@ -225,22 +327,22 @@ because it is what keeps an attempt honest:
 | `CONTRACT.md` | types, return shapes, error convention | yes |
 | `DECISIONS.md` | every ambiguity and its resolution — the answer key | **no** |
 
-Content must not drift up that table. Making the statement clearer to be helpful
-deletes the exact skill the assessment measures, which is committing to a defensible
-reading under time pressure and adapting when a test disagrees.
+Content must not drift up that table. Making the statement clearer to be helpful deletes
+the exact skill being measured, which is committing to a defensible reading under time
+pressure and adapting when a test disagrees.
 
 ## Are the tests right?
 
-They are hand-authored, which means they are guesses until something executes them.
-Each suite passes two gates before shipping:
+They are hand-authored, which means they are guesses until something executes them. Each
+capstone suite passes two gates before shipping:
 
-- **Differential** — a throwaway reference implementation, written outside this repo
-  and deleted afterwards, must agree with every single expected value.
+- **Differential** — a throwaway reference implementation, written outside this repo and
+  deleted afterwards, must agree with every single expected value.
 - **Mutation** — the reference is then broken in each way real candidates break it
-  (inclusive TTL boundary, missing tie-break, no top-N cap, single-snapshot rollback,
-  a separate store after the level-3 refactor, …) and every mutant must be caught by
-  at least one case. A mutant nobody catches is a hole: real broken code would clear
-  all four levels and the practice would be lying to you.
+  (inclusive TTL boundary, missing tie-break, no top-N cap, single-snapshot rollback, a
+  separate store after the level-3 refactor, …) and every mutant must be caught by at
+  least one case. A mutant nobody catches is a hole: real broken code would clear all
+  four levels and the practice would be lying to you.
 
 | problem | cases | differential | mutants caught |
 | --- | --- | --- | --- |
@@ -267,7 +369,7 @@ Three layers.
 
 | layer | what it does |
 | --- | --- |
-| structural | the problem bank's own self-check (`./pfs validate`) — 279 problems |
+| structural | the bank's own self-check (`./pfs validate`) — 279 exercises |
 | backend | 93 checks over every HTTP endpoint: payload shapes, the leak invariants, syntax errors, infinite loops, restart durability, path traversal |
 | browser | 58 checks in real Chrome, asserting on **element geometry** as well as content, at three viewport sizes |
 
@@ -288,20 +390,46 @@ like a frozen page. So the tests measure boxes — is it in the DOM, is it non-z
 
 ## Docs
 
-- [docs/ASSESSMENT_BRIEF.md](docs/ASSESSMENT_BRIEF.md) — what the assessment is, how
+- [docs/CURRICULUM.md](docs/CURRICULUM.md) — why the ladder is a prerequisite graph
+  rather than a difficulty label, and what each rung is for.
+- [docs/CATALOGUE.md](docs/CATALOGUE.md) — the drill-by-drill catalogue.
+- [docs/BANK.md](docs/BANK.md) — the generated ledger of what is actually authored.
+- [docs/ASSESSMENT_BRIEF.md](docs/ASSESSMENT_BRIEF.md) — what the capstone format is, how
   it is scored and proctored, which problem families are real, with sources and
   confidence markers. Safe to read before your first attempt.
-- [docs/PLAYBOOK.md](docs/PLAYBOOK.md) — how to attack the format. **Read it after
-  your first cold attempt**, not before.
+- [docs/PLAYBOOK.md](docs/PLAYBOOK.md) — how to attack the capstone format. **Read it
+  after your first cold attempt**, not before.
 
-## Built with an AI coding agent
+## Suggested first sessions
+
+Start on the ladder, not the capstone:
+
+```bash
+./pfs ui          # the home screen picks the next thing on your path
+```
+
+An hour a night through categories 1–3 is the intended shape. When the pieces are
+comfortable, take a capstone cold:
+
+```bash
+./pfs start file_hosting        # then do not read anything else for 90 minutes
+./pfs finish
+./pfs decisions
+```
+
+Then read [docs/PLAYBOOK.md](docs/PLAYBOOK.md), and take a *different* capstone two days
+later — rotating is what stops you memorising one answer.
+
+---
+
+# Part 2 — How this was built with an AI agent
 
 Almost all of this bank — 279 exercises, 1827 cases, 38 lesson files — was written by
 Claude Code working against the rules in [CLAUDE.md](CLAUDE.md). That only works because
 the repo is built to constrain the agent rather than trust it. Three mechanisms do the
 work.
 
-### 1. A hook that makes leaking impossible, not merely discouraged
+## 1. A hook that makes leaking impossible, not merely discouraged
 
 The obvious failure mode of practising with an AI agent is that the agent has read the
 answer key. Asking it nicely does not scale — a long session drifts, and "just tell me
@@ -321,10 +449,10 @@ flowchart LR
 
 The allowed list is deliberate: the real assessment lets you look up standard-library
 documentation, so the practice environment does too. What it will not do is hand you an
-algorithm, a data structure, or what a failing case expects. It fired on me repeatedly
-while writing this README, which is the point.
+algorithm, a data structure, or what a failing case expects. It fired repeatedly while
+this README was being written, which is the point.
 
-### 2. Two gates, because hand-written expected values are guesses
+## 2. Two gates, because hand-written expected values are guesses
 
 Every case in the bank is a guess until something executes it. Nothing ships without
 passing both:
@@ -356,7 +484,10 @@ success while testing nothing is worse than no tool.** The drill fuzzer twice re
 `None` for every argument and testing only the empty case. Both times, fixing it to
 report **UNJUDGED** instead of "clean" immediately exposed real gaps.
 
-### 3. A loop, not a chat
+## 3. A loop, not a chat
+
+The agent's knowledge lives in the repo as skills and subagents, so it survives the end
+of a conversation:
 
 - [.claude/skills/harness-engineering/](.claude/skills/harness-engineering/) — adding
   problems, authoring cases, the two gates, runner internals. Read before touching
@@ -371,23 +502,3 @@ report **UNJUDGED** instead of "clean" immediately exposed real gaps.
 - [.claude/agents/disclosure-auditor.md](.claude/agents/disclosure-auditor.md) — checks
   that every documented tie-break is demonstrated by a visible case, and that no
   statement has drifted upward.
-
-### Should you commit `.claude/`?
-
-Yes — and this repo does. The hooks are a *correctness* mechanism, not a personal
-preference: without `session_guard.py`, a collaborator's agent would cheerfully leak
-the answer key. The skills encode rules that are otherwise only in one person's head.
-What stays out is `.claude/settings.local.json`, which holds machine-local permission
-grants with absolute paths.
-
-
-## Suggested first session
-
-```bash
-./pfs list
-./pfs start file_hosting        # then do not read anything else for 90 minutes
-./pfs finish
-./pfs decisions
-```
-
-Then read the playbook, and take a different problem two days later.
