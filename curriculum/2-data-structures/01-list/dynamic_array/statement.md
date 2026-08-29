@@ -1,0 +1,23 @@
+# Dynamic array
+
+Implement what a Python list is underneath: a block of slots, a count of how many are used,
+and a growth rule.
+
+```python
+class DynamicArray:
+    def append(self, value: int) -> None: ...
+    def get(self, index: int) -> int | None: ...
+    def set(self, index: int, value: int) -> bool: ...
+    def pop(self) -> int | None: ...
+    def size(self) -> int: ...
+    def capacity(self) -> int: ...
+    def items(self) -> list[int]: ...
+```
+
+- The **capacity** starts at 0 and **doubles** when a full array is appended to. Doubling
+  from 0 gives 1.
+- The capacity never shrinks. `pop` reduces the size only.
+- Valid indices are `0..size-1`. Negative indices are out of range, not counted from the
+  end. A slot that exists but is unused is still out of range.
+- You may use a Python list as the fixed block — but only with a **preallocated** length,
+  never `append` or `pop` on it.

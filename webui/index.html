@@ -1,0 +1,1550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pyactice — practice IDE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>⏱</text></svg>">
+<link rel="stylesheet" href="/static/codemirror.min.css">
+<link rel="stylesheet" href="/static/material-darker.min.css">
+<link rel="stylesheet" href="/static/show-hint.css">
+<link rel="stylesheet" href="/static/lint.css">
+<link rel="stylesheet" href="/static/dialog.css">
+<link rel="stylesheet" href="/static/foldgutter.css">
+<link rel="stylesheet" href="/static/matchesonscrollbar.css">
+<style>
+:root{
+  --bg:#12151c; --panel:#181c25; --panel-2:#1e2430; --line:#2a3140;
+  --ink:#e6eaf2; --ink-dim:#9aa4b8; --ink-faint:#6b7488;
+  --accent:#5b9cff; --ok:#39d98a; --warn:#f5b544; --bad:#ff6b6b; --lock:#6b7488;
+  --mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  overflow:hidden;
+}
+button{font:inherit;cursor:pointer;border:0;border-radius:6px;padding:7px 14px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line)}
+button:hover:not(:disabled){background:#28303f}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#06101f;font-weight:600}
+button.primary:hover:not(:disabled){background:#77afff}
+button.ghost{background:transparent}
+code{font-family:var(--mono);font-size:.92em;background:#0d1017;padding:1px 5px;border-radius:4px;color:#c8d4e8}
+pre{font-family:var(--mono);font-size:12.5px;background:#0d1017;border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;line-height:1.5}
+pre code{background:none;padding:0}
+a{color:var(--accent)}
+
+/* ---------- start screen ---------- */
+.pcard{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.pcard h3{margin:0 0 4px;font-size:16px}
+.pcard p{margin:0;color:var(--ink-dim);font-size:13px}
+.pcard .meta{color:var(--ink-faint);font-size:12px;margin-top:7px}
+/* Same reason as `.row .drills`: the nested list belongs under both columns, not
+   squeezed into the actions cell. */
+.pcard .drills{grid-column:1/-1;margin-top:11px;border-top:1px solid #1b2130;padding-top:7px;
+  display:flex;flex-direction:column;gap:1px}
+.opts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--ink-dim);font-size:13px}
+.opts input{width:64px;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+  border-radius:6px;padding:6px 8px;font:inherit}
+
+/* ---------- home / curriculum ---------- */
+#start{height:100%;display:none;grid-template-rows:52px 1fr auto;overflow:hidden;padding:0}
+#start.on{display:grid}
+#home-top{display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--panel);
+  border-bottom:1px solid var(--line)}
+#home-top .brand{font-weight:600;font-size:15px;white-space:nowrap}
+#q{flex:1;max-width:420px;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:7px 11px;font:inherit}
+#q:focus{outline:none;border-color:var(--accent)}
+#home-body{display:grid;grid-template-columns:236px 1fr;min-height:0}
+#rail{border-right:1px solid var(--line);background:var(--panel);overflow:auto;padding:14px 0}
+.railitem{padding:10px 16px;cursor:pointer;border-left:3px solid transparent}
+.railitem:hover{background:var(--panel-2)}
+.railitem.on{background:var(--bg);border-left-color:var(--accent)}
+.railitem .rt{font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.railitem .rc{color:var(--ink-faint);font-size:11.5px;font-variant-numeric:tabular-nums}
+.railitem .rbar{height:4px;border-radius:2px;background:#0d1017;margin-top:7px;overflow:hidden}
+.railitem .rbar i{display:block;height:100%;background:var(--ok)}
+.railsep{height:1px;background:var(--line);margin:12px 16px}
+#home{overflow:auto;padding:22px 26px 40px}
+#home h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);
+  margin:0 0 10px;font-weight:600}
+#home h2:not(:first-child){margin-top:30px}
+#home .catblurb{color:var(--ink-dim);font-size:13px;margin:-4px 0 18px;max-width:70ch}
+.row{display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:12px 15px;margin-bottom:8px}
+.row.ready{border-color:#2f3a4d}
+.row.done{border-color:rgba(57,217,138,.35)}
+.row .rid{font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+.row .rname{font-weight:600;font-size:14px}
+.row .rmeta{color:var(--ink-faint);font-size:12px;margin-top:3px}
+.row .ractions{display:flex;gap:7px;align-items:center;white-space:nowrap}
+.row .prog{width:110px;height:5px;border-radius:3px;background:#0d1017;overflow:hidden;
+  display:inline-block;vertical-align:middle;margin-right:9px}
+.row .prog i{display:block;height:100%;background:var(--ok)}
+.row button{padding:6px 13px;font-size:12.5px}
+.tick{color:var(--ok);font-weight:700}
+.warnline{color:var(--warn);font-size:12px;margin-top:4px}
+/* The drills nested inside a unit row. `grid-column:1/-1` puts them under all three
+   of the row's columns rather than inside the actions cell, which is what made the
+   row overflow when each drill got its own button. `min-width:0` on the blurb is what
+   lets it ellipsis instead of forcing the grid wider than its container. */
+.row .drills{grid-column:1/-1;margin-top:10px;border-top:1px solid #1b2130;padding-top:7px;
+  display:flex;flex-direction:column;gap:1px}
+/* The name column is a FIXED width, not `auto`. Each .drill is its own grid, so `auto`
+   sized per row and left the blurbs on a ragged edge down the list. 19 characters of
+   mono is the longest label in the bank (`12. IS_POWER_OF_TWO`); a longer one pushes
+   its own row rather than wrapping. */
+.drill{display:grid;grid-template-columns:18px 158px 1fr auto;gap:12px;
+  align-items:center;padding:5px 7px;border-radius:6px;min-width:0}
+.drill:hover{background:#141922}
+.drill .dmark{text-align:center;font-size:11px}
+.drill .dname{font-family:var(--mono);font-size:12px;font-weight:600;white-space:nowrap}
+.drill .dblurb{color:var(--ink-faint);font-size:12px;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.drill.done .dname{color:var(--ink-faint);font-weight:500}
+.drill .wip{color:var(--warn)}
+.drill .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#2a3242}
+.drill .dact{white-space:nowrap;display:flex;gap:6px}
+.drill button{padding:4px 10px;font-size:11.5px}
+.planned{color:var(--ink-faint);font-size:12px;font-style:italic}
+.resume{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;
+  background:linear-gradient(90deg,rgba(91,156,255,.13),transparent);
+  border:1px solid rgba(91,156,255,.4);border-radius:9px;padding:14px 16px;margin-bottom:8px}
+.resume .rname{font-weight:600;font-size:15px}
+.weak{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;
+  font-size:12.5px;padding:5px 0}
+.weak .wbar{height:7px;border-radius:3px;background:#0d1017;overflow:hidden}
+.weak .wbar i{display:block;height:100%;background:var(--warn)}
+.weak a{cursor:pointer;color:var(--accent);white-space:nowrap}
+#home .empty2{color:var(--ink-faint);font-size:13px;padding:8px 0}
+#home-opts{border-top:1px solid var(--line);background:var(--panel);padding:11px 16px;margin:0}
+
+/* ---------- app shell ---------- */
+#app{height:100%;display:none;grid-template-rows:52px 1fr}
+#app.on{display:grid}
+#top{display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+/* Buttons must never shrink or wrap out of the 52px bar -- losing the Run button
+   off the edge of a narrow window is exactly the failure this guards against. */
+#top button{flex:none;white-space:nowrap}
+#top .title{font-weight:600;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+#top .attempt{color:var(--ink-faint);font-size:12px}
+.pills{display:flex;gap:6px;margin-left:4px}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--ink-faint);white-space:nowrap}
+.pill.unlocked{color:var(--ink);border-color:#3a4152}
+.pill.current{border-color:var(--accent);color:var(--accent)}
+.pill.cleared{border-color:var(--ok);color:var(--ok)}
+.spacer{flex:1}
+#clock{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;padding:4px 10px;border-radius:6px}
+#clock.ok{color:var(--ok)} #clock.warn{color:var(--warn)} #clock.bad{color:var(--bad);background:rgba(255,107,107,.1)}
+
+#main{display:grid;grid-template-columns:var(--leftw,42%) 7px 1fr;min-height:0}
+#split{cursor:col-resize;background:var(--line);position:relative}
+#split:hover,#split.dragging{background:var(--accent)}
+#split::after{content:'';position:absolute;inset:0 -4px}   /* fatter grab target than it looks */
+body.dragging{cursor:col-resize;user-select:none}
+/* statement popped into its own window: the main window gives the space to code */
+body.popped #left,body.popped #split{display:none}
+body.popped #main{grid-template-columns:1fr}
+/* the popped-out window renders the statement alone */
+body.docwin #top,body.docwin #right,body.docwin #split{display:none}
+body.docwin #main{grid-template-columns:1fr}
+body.docwin #app{grid-template-rows:1fr}
+body.docwin #left{border-right:0}
+#left{border-right:1px solid var(--line);display:grid;grid-template-rows:auto 1fr;min-height:0;background:var(--panel)}
+.tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line)}
+.tab{padding:7px 14px;font-size:13px;color:var(--ink-faint);border-radius:6px 6px 0 0;cursor:pointer;border:1px solid transparent;border-bottom:none}
+.tab.on{background:var(--bg);color:var(--ink);border-color:var(--line)}
+#doc{overflow:auto;padding:20px 22px 60px}
+#doc h1{font-size:20px;margin:0 0 12px}
+#doc h2{font-size:16px;margin:26px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
+#doc h3{font-size:14px;margin:18px 0 8px;color:var(--ink-dim)}
+#doc ul{padding-left:20px;margin:8px 0}
+#doc li{margin:4px 0}
+#doc li.nested{list-style:circle;margin-left:16px;color:var(--ink-dim)}
+#doc p{margin:9px 0}
+#doc table{border-collapse:collapse;width:100%;font-size:12.5px;margin:10px 0}
+#doc th,#doc td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+#doc th{background:var(--panel-2)}
+.ex{margin:14px 0;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.ex-h{background:var(--panel-2);padding:9px 13px;font-size:13px;color:var(--accent)}
+.ex-b{padding:11px 13px;font-family:var(--mono);font-size:12.5px;background:#0d1017;line-height:1.7}
+.ex-b .call{color:#d5deee}
+.ex-b .arrow{color:var(--ink-faint);margin:0 7px}
+.ex-b .val{color:var(--ok)}
+.ex-b .throws{color:var(--warn)}
+.ex-b .why{color:var(--ink-faint);font-style:italic;padding-left:22px;font-size:12px}
+/* worked-solution tab */
+.ansbar{display:flex;gap:6px;margin:0 0 12px}
+.anslvl{padding:4px 12px;font-size:12px;border-radius:6px}
+.anslvl.on{background:var(--accent);border-color:var(--accent);color:#06101f;font-weight:600}
+pre.answer{max-height:none;font-size:12px;line-height:1.55;white-space:pre}
+#doc p.warn{color:var(--warn)}
+#doc p.dim{color:var(--ink-faint)}
+
+/* Both rows are bounded. With `1fr auto` the results panel grew with its content
+   until the editor row collapsed to zero and the code vanished off screen. */
+#right{display:grid;grid-template-rows:minmax(120px,1fr) 7px var(--resulth,38%);min-height:0}
+#hsplit{cursor:row-resize;background:var(--line);position:relative}
+#hsplit:hover,#hsplit.dragging{background:var(--accent)}
+#hsplit::after{content:'';position:absolute;inset:-4px 0}
+body.vdragging{cursor:row-resize;user-select:none}
+#editor-wrap{min-height:0;position:relative;overflow:hidden}
+.CodeMirror{height:100%;font-family:var(--mono);font-size:13.5px;line-height:1.6}
+#editor-bar{position:absolute;right:14px;top:10px;z-index:5;display:flex;gap:8px;align-items:center}
+/* Visible focus: paste only reaches the editor when the editor has focus, and
+   with three panes on screen it is easy to lose track of where focus went. */
+#editor-wrap{border-left:2px solid transparent}
+#editor-wrap.focused{border-left-color:var(--accent)}
+#saved{font-size:11.5px;color:var(--ink-faint)}
+
+#results{border-top:1px solid var(--line);background:var(--panel);min-height:0;display:grid;grid-template-rows:auto 1fr}
+#results-h{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+#results-h button{flex:none}
+#results-b{overflow:auto;min-height:0;padding:10px 14px 26px}
+#review{background:#14283a;border-bottom:1px solid var(--accent);color:#cfe4ff;
+  padding:9px 14px;font-size:12.5px;line-height:1.5}
+#review b{color:var(--accent)}
+.rtabs{display:flex;gap:2px;background:#0d1017;border:1px solid var(--line);border-radius:7px;padding:2px}
+.rtab{font-size:12px;padding:4px 11px;border-radius:5px;cursor:pointer;color:var(--ink-faint);white-space:nowrap}
+.rtab:hover{color:var(--ink)}
+.rtab.on{background:var(--panel-2);color:var(--ink)}
+.rtab i{font-style:normal;margin-left:6px;font-size:10.5px;color:var(--accent)}
+/* terminal-style console for the candidate's own print() output */
+#term{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:#080b10;
+  border:1px solid var(--line);border-radius:8px;padding:12px 14px;white-space:pre-wrap;
+  color:#cbd6e6;margin:2px 0 10px}
+#term .c{color:var(--accent);display:block;margin:10px 0 2px}
+#term .c:first-child{margin-top:0}
+#term .hint{color:var(--ink-faint);font-style:italic}
+#term .none{color:var(--ink-faint)}
+.bar{height:6px;border-radius:3px;background:#0d1017;overflow:hidden;width:150px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.lvl{margin:12px 0 6px;font-size:12px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.06em}
+.case{display:flex;gap:9px;align-items:baseline;padding:4px 0;font-size:13px}
+.case .mark{width:14px;flex:none;text-align:center;font-family:var(--mono)}
+.case.pass .mark{color:var(--ok)} .case.fail .mark{color:var(--bad)}
+.case.lenient .mark{color:var(--warn)} .case.stub .mark{color:var(--ink-faint)}
+.case .name{font-family:var(--mono);font-size:12.5px}
+.case.hidden .name{color:var(--ink-dim)}
+.case .lab{color:var(--ink-faint);font-size:12px}
+.case .tags{color:var(--ink-faint);font-size:11.5px;margin-left:auto}
+.case.clickable{cursor:pointer;border-radius:5px;padding-left:5px;margin-left:-5px}
+.case.clickable:hover{background:var(--panel-2)}
+.detail{margin:6px 0 14px 23px;border-left:2px solid var(--line);padding-left:14px}
+.detail .doc{color:var(--accent);font-size:12.5px;margin-bottom:8px}
+.detail .op{font-family:var(--mono);font-size:12.5px;line-height:1.75}
+.detail .op.past{color:var(--ink-faint)}
+.detail .op.cur{color:var(--ink)}
+.kv{font-family:var(--mono);font-size:12.5px;padding-left:16px}
+.kv .k{color:var(--ink-faint);display:inline-block;width:70px}
+.kv .exp{color:var(--ok)} .kv .act{color:var(--bad)}
+.note{color:var(--warn);font-size:12.5px;padding-left:16px}
+.why2{color:var(--ink-faint);font-size:12px;padding-left:16px;font-style:italic}
+.tb{color:var(--ink-faint);font-size:11.5px;white-space:pre-wrap;padding-left:16px;margin-top:5px}
+.shape{margin:4px 0 8px 16px;font-family:var(--mono);font-size:12px;line-height:2}
+.shape span{padding:2px 7px;border-radius:4px;border:1px solid var(--line)}
+.shape .op-ok{color:var(--ok);border-color:rgba(57,217,138,.35)}
+.shape .op-bad{color:var(--bad);border-color:var(--bad);background:rgba(255,107,107,.1);font-weight:600}
+.shape .op-todo{color:var(--ink-faint)}
+.shape .op-arrow{border:0;color:var(--ink-faint);padding:0 3px}
+.shape-note{font-family:-apple-system,sans-serif;font-size:11.5px;color:var(--ink-faint);
+  font-style:italic;margin-top:3px;line-height:1.4}
+.out{margin:7px 0 0 16px;border-left:2px solid var(--accent);padding:5px 0 5px 11px}
+.out .lab{color:var(--accent);font-size:11.5px;display:block;margin-bottom:3px}
+.CodeMirror-hints{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+  box-shadow:0 10px 34px rgba(0,0,0,.55);font-family:var(--mono);font-size:12.5px;z-index:60;padding:4px}
+.CodeMirror-hint{color:var(--ink);padding:4px 9px;border-radius:5px;display:flex;gap:14px;align-items:baseline}
+li.CodeMirror-hint-active{background:var(--accent);color:#06101f}
+.CodeMirror-hint{min-width:340px}
+.h-name{color:var(--ink)}
+li.CodeMirror-hint-active .h-name{color:#06101f}
+.h-detail{color:var(--ink-faint);font-size:11.5px;margin-left:10px}
+li.CodeMirror-hint-active .h-detail{color:#0b2547}
+.h-kind{margin-left:auto;font-size:11px;opacity:.65;padding-left:12px}
+#sighint{position:absolute;z-index:80;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:7px;padding:7px 11px;font-family:var(--mono);font-size:12.5px;color:var(--ink-dim);
+  box-shadow:0 8px 26px rgba(0,0,0,.5);max-width:460px;pointer-events:none}
+#sighint b{color:var(--accent);font-weight:600}
+#sighint .sd{display:block;color:var(--ink-faint);font-size:11.5px;margin-top:4px;font-style:italic}
+.CodeMirror-lint-tooltip{background:var(--panel-2);border:1px solid var(--bad);color:var(--ink);
+  font-family:var(--mono);font-size:12px;border-radius:6px;z-index:70}
+.CodeMirror-foldmarker{color:var(--accent);text-shadow:none;font-family:var(--mono)}
+.out pre{margin:0;background:#0b0e14;border:0;padding:6px 9px;font-size:12px;max-height:190px;overflow:auto}
+.empty{color:var(--ink-faint);padding:22px 2px;font-size:13px}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;
+  background:var(--panel-2);border:1px solid var(--ok);color:var(--ink);
+  padding:13px 20px;border-radius:10px;display:flex;gap:14px;align-items:center;
+  box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.toast.hide{display:none}
+.toast b{color:var(--ok)}
+
+.modal{position:fixed;inset:0;background:rgba(5,7,11,.78);z-index:80;display:none;place-items:center;padding:30px}
+.modal.on{display:grid}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  width:min(820px,100%);max-height:88vh;overflow:auto;padding:26px 30px}
+.sheet h2{margin:0 0 4px;font-size:20px}
+.sheet .sub{color:var(--ink-dim);margin:0 0 20px;font-size:13px}
+.drow{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.drow .t{color:var(--ink-dim)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.good{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)} .dim{color:var(--ink-faint)}
+.actions{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+#offline,.banner{position:fixed;left:0;right:0;top:0;z-index:200;background:#3a1416;border-bottom:2px solid var(--bad);
+  color:#ffd9d9;padding:14px 20px;font-size:13.5px;line-height:1.6;text-align:center}
+#offline code,.banner code{background:#0d1017;color:#ffd9d9}
+#stale{background:#3a2c14;border-bottom-color:var(--warn);color:#ffe9c2}
+#stale code{color:#ffe9c2}
+#stalepage{background:#14283a;border-bottom-color:var(--accent);color:#cfe4ff}
+#stalepage button{margin-left:12px;background:var(--accent);border-color:var(--accent);color:#06101f;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ============ home / curriculum ============ -->
+<div id="start">
+  <div id="home-top">
+    <span class="brand">Practice</span>
+    <input id="q" type="search" placeholder="search a topic, algorithm or idiom…" autocomplete="off">
+    <span class="spacer"></span>
+    <span id="home-count" class="dim"></span>
+  </div>
+  <div id="home-body">
+    <nav id="rail"></nav>
+    <main id="home"></main>
+  </div>
+  <div class="opts" id="home-opts">
+    <label id="opt-minutes">Time limit <input id="minutes" type="number" value="90" min="5" max="240"> minutes
+      <span class="dim">(timed problems only)</span></label>
+    <label><input id="blind" type="checkbox"> exam mode — a failing test gives you a number and your own output, nothing else</label>
+  </div>
+</div>
+
+<!-- ============ app ============ -->
+<div id="app">
+  <div id="top">
+    <button id="btn-home" class="ghost" title="End this attempt and pick a problem">⟵ Problems</button>
+    <button id="btn-pop" class="ghost" title="Open the statement in its own window">⧉</button>
+    <span class="title" id="ptitle"></span>
+    <span class="attempt" id="pattempt"></span>
+    <div class="pills" id="pills"></div>
+    <span class="spacer"></span>
+    <span id="clock" class="mono">--:--</span>
+    <button id="btn-stubs" class="ghost" title="Append the current level's method stubs">+ stubs</button>
+    <button id="btn-finish" class="ghost">Finish</button>
+    <button id="btn-run" class="primary">Run tests &nbsp;<span class="dim" style="font-weight:400">⌘⏎</span></button>
+  </div>
+
+  <div id="main">
+    <div id="left">
+      <div class="tabs">
+        <div class="tab on" data-tab="task">Task</div>
+        <div class="tab" data-tab="lesson" id="tab-lesson" style="display:none">Lesson</div>
+        <div class="tab" data-tab="contract" id="tab-contract">Contract</div>
+        <div class="tab" data-tab="decisions" id="tab-decisions" style="display:none">Answer key</div>
+        <div class="tab" data-tab="answer" id="tab-answer" style="display:none">Solution</div>
+      </div>
+      <div id="doc"></div>
+    </div>
+
+    <div id="split" title="Drag to resize · double-click to reset"></div>
+
+    <div id="right">
+      <div id="editor-wrap">
+        <div id="editor-bar"><span id="saved"></span></div>
+        <textarea id="code"></textarea>
+      </div>
+      <div id="hsplit" title="Drag to resize · double-click to reset"></div>
+
+      <div id="results">
+        <div id="results-h">
+          <button id="btn-run2" class="primary">▶&nbsp; Run tests</button>
+          <div class="rtabs">
+            <span class="rtab on" data-r="results">Results</span>
+            <span class="rtab" data-r="output">Output<i id="outcount"></i></span>
+          </div>
+          <div class="bar"><i id="bar" style="width:0%"></i></div>
+          <span id="tally" class="dim">not run yet</span>
+          <span class="spacer"></span>
+          <span id="score" class="mono dim"></span>
+        </div>
+        <div id="results-b"><div class="empty">Write some code, then press <b>⌘↵</b> — or hit the green <b>▶ Run tests</b> button just above. Do it often; partial credit is per test.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast hide" id="toast"><span id="toast-msg"></span><button id="toast-x" class="ghost">Got it</button></div>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script src="/static/codemirror.min.js"></script>
+<script src="/static/python.min.js"></script>
+<script src="/static/matchbrackets.min.js"></script>
+<script src="/static/closebrackets.min.js"></script>
+<script src="/static/comment.min.js"></script>
+<script src="/static/active-line.min.js"></script>
+<script src="/static/show-hint.js"></script>
+<script src="/static/lint.js"></script>
+<script src="/static/searchcursor.js"></script>
+<script src="/static/dialog.js"></script>
+<script src="/static/annotatescrollbar.js"></script>
+<script src="/static/matchesonscrollbar.js"></script>
+<script src="/static/search.js"></script>
+<script src="/static/foldcode.js"></script>
+<script src="/static/foldgutter.js"></script>
+<script src="/static/indent-fold.js"></script>
+<script>
+const PAGE_BUILD = "__PFS_BUILD__";   // substituted by the server when it serves this file
+const $ = s => document.querySelector(s);
+const api = async (path, body) => {
+  const opts = body === undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)};
+  try{
+    const r = await fetch(path, opts);
+    const data = await r.json();
+    offline(false);
+    if(data && typeof data.stale_server === 'boolean') stale(data.stale_server);
+    if(data && data.build && PAGE_BUILD !== '__PFS' + '_BUILD__' && data.build !== PAGE_BUILD) stalePage();
+    return data;
+  }catch(err){
+    // A dead server looks exactly like a frozen UI otherwise: buttons that do
+    // nothing and no explanation anywhere on screen.
+    offline(true);
+    throw err;
+  }
+};
+function stalePage(){
+  if($('#stalepage')) return;
+  const el = document.createElement('div');
+  el.id = 'stalepage'; el.className = 'banner';
+  el.innerHTML = `<b>This page is older than the server.</b> Features added since you opened
+    it are missing here. <button id="reloadnow">Reload now</button>`;
+  document.body.appendChild(el);
+  $('#reloadnow').onclick = () => location.reload(true);
+}
+function stale(on){
+  let el = $('#stale');
+  if(!on){ if(el) el.remove(); return; }
+  if(el) return;
+  el = document.createElement('div');
+  el.id = 'stale'; el.className = 'banner';
+  el.innerHTML = `<b>The server is running older code than what is on disk.</b>
+    It will behave like the previous version until you restart it:<br>
+    <code>Ctrl-C in the terminal, then ./pfs ui</code> — then reload this page. Your clock and code are safe.`;
+  document.body.appendChild(el);
+}
+function offline(on){
+  let el = $('#offline');
+  if(!on){ if(el) el.remove(); return; }
+  if(el) return;
+  el = document.createElement('div');
+  el.id = 'offline';
+  el.innerHTML = `<b>The practice server is not running.</b> Your code and clock are safe on disk.
+    Restart it in your terminal:<br><code>cd ~/Documents/projects/Pyactice &amp;&amp; ./pfs ui</code>
+    <br>then reload this page.`;
+  document.body.appendChild(el);
+}
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const clock = s => {
+  const neg = s < 0; s = Math.abs(Math.round(s));
+  return (neg?'-':'') + String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+};
+
+let STATE = null, EDITOR = null, TICK = null, LAST = null, DIRTY = false, TIMEUP = false;
+
+/* ---------------- clipboard ----------------
+   On macOS, Ctrl-C/X/V are not browser accelerators, so no copy/cut/paste event
+   ever fires for them and there is nothing to intercept. The async clipboard API
+   is the only way to honour those keys, and it works here because 127.0.0.1 counts
+   as a secure context. Cmd-C/X/V keep using the native path and never come here. */
+const MAC = /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent || '');
+let CLIP_FALLBACK = '';   // last thing we copied, so Ctrl-V works even if reads are blocked
+
+async function clipCopy(cm, cut) {
+  const text = cm.getSelection();
+  if (!text) return;                       // nothing selected: do not clobber the clipboard
+  CLIP_FALLBACK = text;
+  try { await navigator.clipboard.writeText(text); } catch (err) { /* keep the fallback */ }
+  if (cut) cm.replaceSelection('');
+}
+
+async function clipPaste(cm) {
+  let text = null;
+  try { text = await navigator.clipboard.readText(); } catch (err) { text = null; }
+  // A blocked or dismissed clipboard-read permission is the common case here, and
+  // it must not look like "paste is broken": fall back to whatever this page last
+  // copied, and only complain when there is genuinely nothing to paste.
+  if (!text) text = CLIP_FALLBACK;
+  if (!text) {
+    toast(MAC
+      ? 'Ctrl-V needs clipboard permission — click the icon in the address bar and allow it, or use <b>⌘V</b>.'
+      : 'Nothing to paste.', true);
+    return;
+  }
+  cm.replaceSelection(text, 'end');
+}
+
+/* ---------------- start screen ---------------- */
+let CUR = null;        // the /api/curriculum payload
+// Which unit rows are expanded. Kept across repaints so opening a unit, starting a
+// drill and coming back does not collapse everything you were working through.
+const OPEN = new Set();
+let VIEW = 'path';     // 'path' | a category number | 'all'
+let PROBLEMS = [];     // the flat problem cards from /api/state
+
+async function renderStart(problems){
+  $('#app').classList.remove('on'); $('#start').classList.add('on');
+  PROBLEMS = problems || [];
+  try { CUR = await api('/api/curriculum'); }
+  catch (e) { CUR = null; }
+  paintHome();
+}
+
+function problemCard(key){
+  return PROBLEMS.find(p => p.key === key) || null;
+}
+
+function paintHome(){
+  if(!CUR){
+    // The curriculum endpoint is the only thing that can fail here, and falling back
+    // to the flat list is better than an empty screen.
+    VIEW = 'all';
+    $('#rail').innerHTML = '';
+    $('#home').innerHTML = allProblemsHtml();
+    wireHome();
+    return;
+  }
+  $('#home-count').textContent =
+    `${CUR.authored} of ${CUR.authored + CUR.planned} exercises written`;
+
+  $('#rail').innerHTML = CUR.categories.map(c => {
+    const pct = c.total ? Math.round(100 * c.cleared / c.total) : 0;
+    return `<div class="railitem ${VIEW === c.number ? 'on' : ''}" data-cat="${c.number}">
+      <div class="rt"><span>${c.number}. ${esc(c.title)}</span>
+        <span class="rc">${c.cleared}/${c.total}</span></div>
+      <div class="rbar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }).join('')
+    + `<div class="railsep"></div>`
+    + `<div class="railitem ${VIEW === 'path' ? 'on' : ''}" data-cat="path">
+         <div class="rt"><span>◈ Your path</span></div></div>`
+    + `<div class="railitem ${VIEW === 'all' ? 'on' : ''}" data-cat="all">
+         <div class="rt"><span>▤ All problems</span>
+           <span class="rc">${PROBLEMS.length}</span></div></div>`;
+
+  // The clock only exists for the kinds that simulate one. Showing "Time limit 90
+  // minutes" above a set of sixty-second drills invites a setting that does nothing.
+  const timedInView = PROBLEMS.some(p => p.timed);
+  $('#opt-minutes').style.display = timedInView ? '' : 'none';
+
+  const query = $('#q').value.trim().toLowerCase();
+  if(query) $('#home').innerHTML = searchHtml(query);
+  else if(VIEW === 'path') $('#home').innerHTML = pathHtml();
+  else if(VIEW === 'all') $('#home').innerHTML = allProblemsHtml();
+  else $('#home').innerHTML = categoryHtml(VIEW);
+  wireHome();
+}
+
+/* ---- the path: resume, frontier, weak spots ---- */
+function pathHtml(){
+  let html = '';
+  if(CUR.resume){
+    const r = CUR.resume;
+    html += `<h2>Continue</h2>
+      <div class="resume">
+        <div><div class="rname">${esc(r.title)}</div>
+          <div class="rmeta">${esc(r.subtopic)} ${esc(r.subtopic_title)}${r.best ? ' · best ' + r.best : ''}</div></div>
+        <button class="primary" data-start="${esc(r.problem)}" data-resume="1">Resume</button>
+      </div>`;
+  }
+
+  const ready = CUR.frontier.map(id => findSub(id)).filter(Boolean);
+  html += `<h2>Next on your path</h2>`;
+  html += ready.length
+    ? ready.map(([c, sub]) => subRow(c, sub)).join('')
+    : `<div class="empty2">Nothing is ready yet — every written exercise is cleared.
+        Pick any topic from the rail; prerequisites only ever advise.</div>`;
+
+  if(CUR.weak.length){
+    const top = CUR.weak[0].sessions || 1;
+    html += `<h2>Weak spots · from your sessions</h2>`;
+    html += CUR.weak.map(w => `<div class="weak">
+        <span>${esc(w.tag)}</span>
+        <span class="wbar"><i style="width:${Math.round(100*w.sessions/top)}%"></i></span>
+        <a data-goto="${esc(w.subtopic)}">${esc(w.subtopic)} ${esc(w.subtopic_title)} →</a>
+      </div>`).join('');
+  }
+  return html;
+}
+
+function categoryHtml(number){
+  const c = CUR.categories.find(x => x.number === number);
+  if(!c) return '';
+  return `<h2>${c.number}. ${esc(c.title)}</h2>
+    <div class="catblurb">${esc(c.blurb)}</div>`
+    + c.subtopics.map(sub => subRow(c, sub)).join('');
+}
+
+/* ---- one subtopic row. The whole design lives here: never disabled. ---- */
+function subRow(cat, sub){
+  const pct = sub.total ? Math.round(100 * sub.done / sub.total) : 0;
+  const cls = sub.cleared ? 'done' : (sub.ready && sub.available ? 'ready' : '');
+  const bits = [];
+  if(sub.problems.length) bits.push(`${sub.problems.length} written`);
+  if(sub.planned) bits.push(`${sub.planned} planned`);
+  bits.push(sub.minutes[0] === sub.minutes[1]
+    ? `~${sub.minutes[0]} min`
+    : `~${sub.minutes[0]}\u2013${sub.minutes[1]} min`);
+
+  // One button per problem was the original design, and it only worked while a subtopic
+  // held one. A unit of twelve drills sprayed twelve full-width buttons into a nowrap
+  // flex row and pushed the home column to 5545px inside a 1204px viewport. So a
+  // subtopic with more than one problem collapses to a single action plus a disclosure,
+  // and the drills themselves nest underneath.
+  const cards = sub.problems.map(problemCard).filter(Boolean);
+  const solo = sub.problems.length === 1;
+  let actions = '';
+  if(!sub.available){
+    actions = `<span class="planned">not written yet</span>`;
+  } else if(solo){
+    actions = startButtons(sub.problems[0], true, sub.cleared);
+  } else {
+    // The primary action skips to where the learner actually is: the first drill with
+    // unfinished work, else the first not yet cleared, else the first for a re-read.
+    const next = cards.find(c => c.has_work) || cards.find(c => !c.cleared) || cards[0];
+    const done = cards.filter(c => c.cleared).length;
+    actions = (next ? startButtons(next.key, true, !!next.cleared) : '')
+      + `<button class="ghost" data-expand="${esc(sub.id)}" aria-expanded="${OPEN.has(sub.id)}">`
+      + `${done}/${cards.length} ${OPEN.has(sub.id) ? '\u2303' : '\u2304'}</button>`;
+  }
+
+  // The nested drill list. Rendered only when open: eight units at twelve rows each is
+  // ninety-two rows of DOM that nobody asked to see.
+  let nested = '';
+  if(OPEN.has(sub.id) && !solo && cards.length){
+    nested = `<div class="drills">` + cards.map(c => {
+      const mark = c.cleared ? '<span class="tick">\u2713</span>'
+        : (c.has_work ? '<span class="wip" title="unfinished work">\u25cf</span>' : '<span class="dot"></span>');
+      return `<div class="drill${c.cleared ? ' done' : ''}">
+          <div class="dmark">${mark}</div>
+          <div class="dname">${esc(c.label)}</div>
+          <div class="dblurb">${esc(c.blurb)}</div>
+          <div class="dact">${startButtons(c.key, true, !!c.cleared)}</div>
+        </div>`;
+    }).join('') + `</div>`;
+  }
+
+  // Missing prerequisites state the usual order and still offer the button. A greyed
+  // out row would make "I have a heap interview on Thursday" impossible.
+  // Advisory, never a block. The server only sends prerequisites that exist and are
+  // not cleared, so everything here is something the learner can actually go and do.
+  const warn = sub.missing.length
+    ? `<div class="warnline">usually done after ${sub.missing.map(m =>
+        `<a data-goto="${esc(m.id)}">${esc(m.id)} ${esc(m.title)}</a>`).join(', ')}</div>`
+    : '';
+
+  return `<div class="row ${cls}">
+      <div class="rid">${sub.cleared ? '<span class="tick">\u2713</span> ' : ''}${esc(sub.id)}</div>
+      <div>
+        <div class="rname">${esc(sub.title)}</div>
+        <div class="rmeta">${bits.join(' \u00b7 ')}</div>
+        ${warn}
+      </div>
+      <div class="ractions">
+        ${sub.available
+          ? `<span class="prog" title="${sub.done}/${sub.total}"><i style="width:${pct}%"></i></span>`
+          : ''}
+        ${actions}
+      </div>
+      ${nested}
+    </div>`;
+}
+
+/** Start vs Resume. Starting archives your file and writes fresh stubs, which is
+ *  correct for a deliberate cold retake and a trap when you meant to carry on. So when
+ *  there is unfinished work the primary action is Resume, and starting over is the
+ *  explicit, secondary one. */
+function startButtons(key, solo, cleared){
+  const card = problemCard(key);
+  const label = solo ? (cleared ? 'Review' : 'Start') : (card ? card.title : key);
+  if(card && card.has_work){
+    return `<button class="primary" data-start="${esc(key)}" data-resume="1">`
+      + `Resume${solo ? '' : ' ' + esc(label)}</button>`
+      + `<button class="ghost" data-start="${esc(key)}" data-fresh="1"`
+      + ` title="Archives your current file and writes fresh stubs">Start over</button>`;
+  }
+  return `<button class="${cleared ? '' : 'primary'}" data-start="${esc(key)}">${esc(label)}</button>`;
+}
+
+function allProblemsHtml(){
+  if(!PROBLEMS.length) return '<div class="empty2">No problems found under problems/.</div>';
+  // Grouped by unit, because ninety-two of the ninety-eight are drills and a flat list
+  // of them is a wall of near-identical titles. A standalone problem keeps its own
+  // card; a unit gets one card that holds its drills.
+  const standalone = PROBLEMS.filter(p => !p.unit);
+  const units = [];
+  const byKey = new Map();
+  for(const p of PROBLEMS){
+    if(!p.unit) continue;
+    const [key, title] = p.unit;
+    if(!byKey.has(key)){ byKey.set(key, {key, title, drills: []}); units.push(byKey.get(key)); }
+    byKey.get(key).drills.push(p);
+  }
+
+  const card = p => `
+    <div class="pcard" data-key="${esc(p.key)}" data-levels="${p.levels}">
+      <div>
+        <h3>${esc(p.title)}</h3>
+        <p>${esc(p.blurb)}</p>
+        <div class="meta">${p.cases} test cases \u00b7 ${p.levels} level${p.levels === 1 ? '' : 's'}${p.difficulty ? ' \u00b7 ' + esc(p.difficulty) : ''}${p.attempts ? ' \u00b7 attempted ' + p.attempts + '\u00d7' : ''}</div>
+      </div>
+      <div class="ractions">${startButtons(p.key, true, !!p.cleared)}</div>
+    </div>`;
+
+  const unitCard = u => {
+    const done = u.drills.filter(d => d.cleared).length;
+    const open = OPEN.has('all:' + u.key);
+    const cases = u.drills.reduce((n, d) => n + d.cases, 0);
+    return `
+    <div class="pcard unit" data-key="${esc(u.key)}" data-levels="1">
+      <div>
+        <h3>${esc(u.title)}</h3>
+        <p>${u.drills.length} drills, one idiom each \u00b7 ${cases} test cases</p>
+        <div class="meta">${done}/${u.drills.length} cleared</div>
+      </div>
+      <div class="ractions">
+        <button class="ghost" data-expand="all:${esc(u.key)}" aria-expanded="${open}">
+          ${open ? 'Hide' : 'Show'} drills ${open ? '\u2303' : '\u2304'}</button>
+      </div>
+      ${open ? `<div class="drills">` + u.drills.map(d => `
+        <div class="drill${d.cleared ? ' done' : ''}">
+          <div class="dmark">${d.cleared ? '<span class="tick">\u2713</span>'
+            : (d.has_work ? '<span class="wip">\u25cf</span>' : '<span class="dot"></span>')}</div>
+          <div class="dname">${esc(d.label)}</div>
+          <div class="dblurb">${esc(d.blurb)}</div>
+          <div class="dact">${startButtons(d.key, true, !!d.cleared)}</div>
+        </div>`).join('') + `</div>` : ''}
+    </div>`;
+  };
+
+  return `<h2>All problems</h2>`
+    + standalone.map(card).join('')
+    + (units.length ? `<h2>Drill units</h2>` + units.map(unitCard).join('') : '');
+}
+
+function searchHtml(query){
+  const hitSub = [];
+  for(const c of CUR.categories)
+    for(const sub of c.subtopics)
+      if((sub.id + ' ' + sub.title + ' ' + sub.slug + ' ' + sub.tags.join(' ')).toLowerCase().includes(query))
+        hitSub.push([c, sub]);
+  const hitProb = PROBLEMS.filter(p =>
+    (p.key + ' ' + p.title + ' ' + p.blurb).toLowerCase().includes(query));
+
+  if(!hitSub.length && !hitProb.length)
+    return `<div class="empty2">Nothing matches \u201c${esc(query)}\u201d.</div>`;
+
+  let html = '';
+  if(hitSub.length){
+    html += `<h2>${hitSub.length} topic${hitSub.length === 1 ? '' : 's'}</h2>`;
+    html += hitSub.map(([c, sub]) => subRow(c, sub)).join('');
+  }
+  if(hitProb.length){
+    html += `<h2>${hitProb.length} problem${hitProb.length === 1 ? '' : 's'}</h2>`;
+    html += hitProb.map(p => `<div class="pcard">
+        <div><h3>${esc(p.title)}</h3><p>${esc(p.blurb)}</p></div>
+        <div class="ractions">${startButtons(p.key, true, false)}</div>
+      </div>`).join('');
+  }
+  return html;
+}
+
+function findSub(id){
+  for(const c of CUR.categories)
+    for(const sub of c.subtopics)
+      if(sub.id === id) return [c, sub];
+  return null;
+}
+
+function wireHome(){
+  $('#rail').querySelectorAll('.railitem').forEach(el => el.onclick = () => {
+    const raw = el.dataset.cat;
+    VIEW = (raw === 'path' || raw === 'all') ? raw : +raw;
+    $('#q').value = '';
+    paintHome();
+  });
+  document.querySelectorAll('#home [data-start]').forEach(b => b.onclick = async () => {
+    const key = b.dataset.start;
+    b.disabled = true; b.textContent = 'Starting\u2026';
+    STATE = await api('/api/start', {
+      problem: key,
+      minutes: +$('#minutes').value || 90,
+      resume: b.dataset.resume === '1',
+      blind: $('#blind').checked,
+    });
+    enterApp();
+  });
+  document.querySelectorAll('#home [data-expand]').forEach(b => b.onclick = () => {
+    const id = b.dataset.expand;
+    OPEN.has(id) ? OPEN.delete(id) : OPEN.add(id);
+    paintHome();
+  });
+  document.querySelectorAll('#home [data-goto]').forEach(a => a.onclick = () => {
+    const target = findSub(a.dataset.goto);
+    if(!target) return;
+    VIEW = target[0].number;
+    $('#q').value = '';
+    paintHome();
+  });
+}
+
+let Q_T = null;
+document.addEventListener('input', e => {
+  if(e.target.id !== 'q') return;
+  clearTimeout(Q_T);
+  Q_T = setTimeout(paintHome, 120);
+});
+
+/* ---------------- app ---------------- */
+function enterApp(){
+  $('#start').classList.remove('on'); $('#app').classList.add('on');
+  if(!EDITOR){
+    // CodeMirror's macDefault keymap falls through to `emacsy`, which binds
+    // Ctrl-V to goPageDown, Ctrl-A to goLineStart and Ctrl-K to killLine. To
+    // anyone whose clipboard muscle memory is Ctrl-shaped that turns Ctrl-V into
+    // "jump a page down" and Ctrl-K into "silently delete the rest of the line".
+    // Drop them so the keys fall through to our own bindings below; on Windows
+    // and Linux `emacsy` is not in the chain at all, so there is nothing to undo.
+    if (MAC && window.CodeMirror && CodeMirror.keyMap.emacsy) {
+      for (const key of ['Ctrl-V', 'Shift-Ctrl-V', 'Ctrl-A', 'Ctrl-K', 'Ctrl-D',
+                         'Ctrl-H', 'Ctrl-O', 'Ctrl-T', 'Ctrl-P', 'Ctrl-N',
+                         'Ctrl-B', 'Ctrl-E', 'Ctrl-F'])
+        delete CodeMirror.keyMap.emacsy[key];
+    }
+
+    EDITOR = CodeMirror.fromTextArea($('#code'), {
+      mode:'python', theme:'material-darker', lineNumbers:true, indentUnit:4,
+      matchBrackets:true, autoCloseBrackets:true, styleActiveLine:true,
+      foldGutter:true,
+      gutters:['CodeMirror-lint-markers','CodeMirror-linenumbers','CodeMirror-foldgutter'],
+      lint:{async:true, getAnnotations:pyLint, delay:500},
+      hintOptions:{hint:pyHint, completeSingle:false},
+      extraKeys:{
+        'Cmd-Enter':runTests, 'Ctrl-Enter':runTests,
+        'Cmd-S':e=>{save(true);}, 'Ctrl-S':e=>{save(true);},
+        'Cmd-/':cm=>cm.toggleComment(), 'Ctrl-/':cm=>cm.toggleComment(),
+        'Ctrl-Space':'autocomplete', 'Alt-/':'autocomplete',
+        'Cmd-F':'findPersistent', 'Ctrl-F':'findPersistent',
+        'Cmd-G':'findNext', 'Ctrl-G':'findNext',
+        Tab: cm => cm.somethingSelected() ? cm.indentSelection('add') : cm.replaceSelection('    '),
+        // Ctrl-shaped clipboard and selection shortcuts. macOS has no native
+        // accelerator for these, so without them Ctrl-C and Ctrl-V do nothing at
+        // all -- there is no browser default to fall back on.
+        'Ctrl-C': cm => clipCopy(cm, false),
+        'Ctrl-X': cm => clipCopy(cm, true),
+        'Ctrl-V': cm => clipPaste(cm),
+        'Shift-Ctrl-V': cm => clipPaste(cm),
+        'Ctrl-A': cm => cm.execCommand('selectAll'),
+        'Ctrl-Z': cm => cm.execCommand('undo'),
+        'Ctrl-Y': cm => cm.execCommand('redo'),
+        'Shift-Ctrl-Z': cm => cm.execCommand('redo'),
+      },
+    });
+    EDITOR.on('change', () => { DIRTY = true; $('#saved').textContent = 'unsaved'; scheduleSave(); });
+    // Offer completions as you type, but never inside a string or a comment,
+    // and never on the first character -- a menu after every keystroke is noise.
+    EDITOR.on('inputRead', (cm, change) => {
+      if(change.origin !== '+input' || !change.text || change.text.length !== 1) return;
+      const typed = change.text[0];
+      const cur = cm.getCursor();
+      const tok = cm.getTokenAt(cur);
+      if(tok.type === 'string' || tok.type === 'comment') return;
+      const before = cm.getLine(cur.line).slice(0, cur.ch);
+      const wordish = /[A-Za-z_]\w*$/.exec(before);
+      if(typed === '(' || typed === ',') { refreshSignature(); return; }
+      if(typed === ')') { showSignature(null); return; }
+      if(typed === '.' || (wordish && wordish[0].length >= 2))
+        cm.showHint({hint: pyHint, completeSingle: false});
+    });
+    EDITOR.on('focus', () => $('#editor-wrap').classList.add('focused'));
+    EDITOR.on('blur',  () => { $('#editor-wrap').classList.remove('focused'); showSignature(null); });
+    EDITOR.on('cursorActivity', refreshSignature);
+
+    // Clicking the empty space below the last line should focus the editor, not
+    // leave focus wherever it was.
+    $('#editor-wrap').addEventListener('mousedown', e => {
+      if (e.target.closest('.CodeMirror') || e.target.closest('#editor-bar')) return;
+      EDITOR.focus();
+    });
+
+    // Cmd-V anywhere that is not a text field goes into the editor. Without this a
+    // paste after clicking the statement or the results pane silently does nothing,
+    // which reads as "paste is broken".
+    document.addEventListener('paste', e => {
+      if (!EDITOR) return;
+      const el = document.activeElement;
+      if (el && el.closest && el.closest('.CodeMirror')) return;      // already there
+      if (el && /^(INPUT|TEXTAREA)$/.test(el.tagName)) return;        // a real field
+      const text = (e.clipboardData || window.clipboardData || {}).getData
+        ? (e.clipboardData || window.clipboardData).getData('text') : '';
+      if (!text) return;
+      e.preventDefault();
+      EDITOR.focus();
+      EDITOR.replaceSelection(text, 'end');
+    });
+
+    // The same courtesy for Ctrl-C/X/V, which fire no `paste`/`copy` event on
+    // macOS: catch them wherever focus happens to be and route them at the editor.
+    document.addEventListener('keydown', e => {
+      if (!EDITOR || !MAC) return;
+      if (!e.ctrlKey || e.metaKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (!'cxv'.includes(key)) return;
+      const el = document.activeElement;
+      if (el && /^(INPUT|TEXTAREA)$/.test(el.tagName) && !el.closest('.CodeMirror')) return;
+      if (el && el.closest && el.closest('.CodeMirror')) return;      // extraKeys has it
+      e.preventDefault();
+      EDITOR.focus();
+      if (key === 'v') clipPaste(EDITOR); else clipCopy(EDITOR, key === 'x');
+    });
+  }
+  EDITOR.setValue(STATE.code || '');
+  EDITOR.refresh();
+  applySavedPanes();
+  paint();
+  startClock();
+  setTimeout(()=>EDITOR.refresh(), 60);
+}
+
+function paint(){
+  const p = STATE.problem, s = STATE.session;
+  $('#ptitle').textContent = p.title;
+  $('#pattempt').textContent = 'attempt ' + s.attempt;
+  $('#pills').innerHTML = STATE.levels.map(l => {
+    const cls = l.cleared ? 'cleared' : (l.number === s.unlocked_level ? 'current' : (l.unlocked ? 'unlocked' : ''));
+    const icon = l.cleared ? '✓ ' : (l.unlocked ? '' : '🔒 ');
+    return `<span class="pill ${cls}">${icon}L${l.number}</span>`;
+  }).join('');
+  $('#btn-stubs').style.display = s.finished ? 'none' : '';
+  $('#btn-stubs').disabled = !s.stubs_pending;
+  $('#btn-stubs').title = s.stubs_pending
+    ? `Append the level ${s.unlocked_level} method stubs to your file`
+    : 'Your file already defines this level’s methods';
+  $('#btn-finish').textContent = s.finished ? 'Debrief' : 'Finish';
+  const hasLesson = !!(STATE.statement && STATE.statement.lesson_html);
+  $('#tab-lesson').style.display = hasLesson ? '' : 'none';
+  // A drill has no contract: its signature and constraint are the whole statement.
+  $('#tab-contract').style.display = STATE.contract_html ? '' : 'none';
+  $('#tab-decisions').style.display = s.finished ? '' : 'none';
+  $('#tab-answer').style.display = s.finished ? '' : 'none';
+  // Starting a fresh attempt hides these tabs, but TAB is remembered across the
+  // transition — leaving the pane pointed at an endpoint that now (correctly)
+  // answers 403, which shows as a locked message where the solution used to be.
+  if(!s.finished && (TAB === 'decisions' || TAB === 'answer')) TAB = 'task';
+  if(TAB === 'lesson' && !hasLesson) TAB = 'task';
+  if(TAB === 'contract' && !STATE.contract_html) TAB = 'task';
+  reviewMode(!!s.finished, s.unlocked_level, p.max_level);
+  renderDoc(TAB);   // stay on whichever tab the user was reading
+}
+
+/** Say plainly when the attempt is over -- an expired clock is easy to miss, and
+ *  review mode changes what the results mean (all levels, hidden cases shown). */
+function reviewMode(on, reached, total){
+  let el = $('#review');
+  if(!on){ if(el) el.remove(); document.body.classList.remove('reviewing'); return; }
+  document.body.classList.add('reviewing');
+  if(el) return;
+  el = document.createElement('div');
+  el.id = 'review';
+  el.innerHTML = `<b>Attempt over — review mode.</b> You reached level ${reached} of ${total}.
+    All ${total} levels now run, hidden tests are shown in full, and the answer key is open.
+    Nothing here counts towards a score.`;
+  $('#results-h').after(el);
+}
+
+/** Pull authoritative state from the server and repaint. */
+async function refreshState(){
+  STATE = await api('/api/state');
+  paint();
+}
+
+let TAB = 'task';
+function renderDoc(tab){
+  TAB = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
+  const d = $('#doc');
+  if(tab === 'contract'){ d.innerHTML = STATE.contract_html || '<p class="dim">No contract.</p>'; d.scrollTop = 0; return; }
+  if(tab === 'decisions'){
+    api('/api/decisions').then(r => {
+      d.innerHTML = r.locked ? `<p class="warn">${esc(r.reason)}</p>` : r.html;
+      d.scrollTop = 0;
+    });
+    return;
+  }
+  if(tab === 'lesson'){
+    d.innerHTML = (STATE.statement && STATE.statement.lesson_html)
+      || '<p class="dim">No lesson for this problem.</p>';
+    d.scrollTop = 0;
+    return;
+  }
+  if(tab === 'answer'){ renderAnswer(ANSWER_LEVEL); return; }
+  let html = STATE.statement.html;
+  for(const group of STATE.statement.examples){
+    if(!group.cases.length) continue;
+    html += `<h3>Level ${group.level} — examples</h3>`;
+    for(const c of group.cases){
+      html += `<div class="ex"><div class="ex-h">${esc(c.doc)}</div><div class="ex-b">`;
+      for(const op of c.ops){
+        html += `<div><span class="call">${esc(op.call)}</span>`;
+        if(op.expected !== null){
+          const cls = op.expected === 'throws' ? 'throws' : 'val';
+          html += `<span class="arrow">→</span><span class="${cls}">${esc(op.expected)}</span>`;
+        }
+        html += `</div>`;
+        if(op.why) html += `<div class="why">// ${esc(op.why)}</div>`;
+      }
+      html += `</div></div>`;
+    }
+  }
+  d.innerHTML = html; d.scrollTop = 0;
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => renderDoc(t.dataset.tab));
+
+/* ---------------- clock ---------------- */
+function startClock(){
+  clearInterval(TICK);
+  TIMEUP = false;
+  const el = $('#clock');
+  const paint = () => {
+    if(STATE.session.finished){ el.textContent = 'done'; el.className = 'mono dim'; return; }
+    // An untimed session has no clock to count. Showing 'untimed' once and stopping the
+    // interval is honest; counting up from nothing would just be decoration.
+    if(!STATE.session.timed || STATE.session.remaining_s === null){
+      el.textContent = 'untimed'; el.className = 'mono dim';
+      clearInterval(TICK);
+      return;
+    }
+    const left = STATE.session.remaining_s--;
+    el.textContent = left <= 0 ? 'TIME UP' : clock(left);
+    el.className = 'mono ' + (left > 900 ? 'ok' : left > 300 ? 'warn' : 'bad');
+    if(left <= 0 && !TIMEUP){
+      TIMEUP = true;
+      clearInterval(TICK);
+      toast('<b>Time is up.</b> The attempt is over — hit Finish for your debrief.', true);
+      refreshState();
+    }
+  };
+  paint(); TICK = setInterval(paint, 1000);
+}
+
+/* ---------------- save ---------------- */
+let SAVE_T = null;
+function scheduleSave(){ clearTimeout(SAVE_T); SAVE_T = setTimeout(()=>save(false), 1200); }
+async function save(explicit){
+  if(!DIRTY && !explicit) return;
+  await api('/api/save', {code: EDITOR.getValue()});
+  DIRTY = false;
+  $('#saved').textContent = 'saved';
+  setTimeout(()=>{ if(!DIRTY) $('#saved').textContent=''; }, 1600);
+}
+window.addEventListener('beforeunload', () => { if(DIRTY) navigator.sendBeacon('/api/save', JSON.stringify({code:EDITOR.getValue()})); });
+
+/* ---------------- run ---------------- */
+async function runTests(){
+  const btn = $('#btn-run'), btn2 = $('#btn-run2');
+  btn.disabled = btn2.disabled = true;
+  btn.textContent = 'Running…'; btn2.textContent = 'Running…';
+  try{
+    const r = await api('/api/run', {code: EDITOR.getValue(), reveal: STATE.session.finished});
+    DIRTY = false; $('#saved').textContent = 'saved';
+    LAST = r;
+    // The server's remaining_s is authoritative; the local countdown only fills
+    // the gaps between runs, so re-syncing here corrects any drift.
+    if(r.state){ STATE = r.state; paint(); }
+    renderResults(r);
+    if(r.newly_unlocked) unlocked(r.newly_unlocked);
+    else if(r.all_clear) toast('<b>All four levels clear.</b> Hit Finish for your debrief.', true);
+  } finally {
+    btn.disabled = btn2.disabled = false;
+    btn.innerHTML = 'Run tests &nbsp;<span class="dim" style="font-weight:400">⌘⏎</span>';
+    btn2.innerHTML = '▶&nbsp; Run tests';
+  }
+}
+
+let RTAB = 'results';
+document.querySelectorAll('.rtab').forEach(t => t.onclick = () => {
+  RTAB = t.dataset.r;
+  document.querySelectorAll('.rtab').forEach(x => x.classList.toggle('on', x.dataset.r === RTAB));
+  if(LAST) renderResults(LAST);
+});
+
+function termHtml(r){
+  const chunks = [];
+  for(const lv of r.levels)
+    for(const c of lv.cases)
+      // In exam mode the id *is* the opaque number, so it needs no dressing up.
+      if(c.stdout) chunks.push({
+        name: (c.visible || c.blind) ? c.id : ('hidden test #' + c.id.split('_').pop()),
+        out: c.stdout,
+      });
+  if(!chunks.length){
+    return `<div id="term"><span class="none">No output.</span>
+<span class="hint">Anything your code print()s shows up here — one block per test case.
+Try:  print("add_file", name, size, "| self.files =", self.files)
+      print("everything on self:", vars(self))</span></div>`;
+  }
+  return '<div id="term">' + chunks.map(c =>
+    `<span class="c">▸ ${esc(c.name)}</span>${esc(c.out.replace(/\n+$/,''))}`).join('\n') + '</div>';
+}
+
+const MARK = {pass:'✓', fail:'✗', lenient:'≈', error:'!', not_implemented:'·', missing_method:'?', timeout:'T'};
+const KIND = {pass:'pass', fail:'fail', lenient:'lenient', error:'fail', not_implemented:'stub', missing_method:'fail', timeout:'fail'};
+
+function renderResults(r){
+  const body = $('#results-b');
+  LAST = r;
+  const printed = r.levels ? r.levels.flatMap(lv => lv.cases).filter(c => c.stdout).length : 0;
+  $('#outcount').textContent = printed ? String(printed) : '';
+  if(r.load_error){
+    $('#tally').textContent = 'your file did not load';
+    $('#bar').style.width = '0%'; $('#score').textContent = '';
+    body.innerHTML = `<div class="lvl bad">Python could not import your solution</div><pre>${esc(r.load_error)}</pre>`;
+    return;
+  }
+  const pct = r.total ? Math.round(100*r.passed/r.total) : 0;
+  $('#bar').style.width = pct + '%';
+  $('#tally').innerHTML = `<b class="${r.passed===r.total?'good':'bad'}">${r.passed}/${r.total}</b> cases`;
+  $('#score').textContent = `score ~${r.score}/${r.score_max}`;
+
+  if(RTAB === 'output'){ body.innerHTML = termHtml(r); body.scrollTop = 0; return; }
+
+  let html = '';
+  let hiddenNo = 0;
+  for(const lv of r.levels){
+    html += `<div class="lvl">Level ${lv.level} · ${esc(lv.title)} — <span class="${lv.clean?'good':'bad'}">${lv.passed}/${lv.total}</span></div>`;
+    for(const c of lv.cases){
+      if(c.passed) continue;
+      const kind = KIND[c.outcome] || 'fail';
+      if(!c.visible) hiddenNo++;
+      // In exam mode the server supplies a stable per-level number. The local
+      // counter only walks failures, so it renumbers whenever a different set of
+      // tests fails -- useless for tracking one test across runs.
+      const name = c.blind ? esc(c.id)
+                 : (c.visible ? esc(c.id) : 'hidden test ' + hiddenNo);
+      html += `<div class="case ${kind} ${c.visible?'':'hidden'} clickable" data-id="${esc(c.id)}">
+        <span class="mark">${MARK[c.outcome]||'✗'}</span>
+        <span class="name">${name}</span>
+        <span class="lab">${esc(c.label)}${c.step ? ' at step ' + c.step : ''}</span>
+        <span class="tags">${c.visible ? esc(c.tags.join(' · ')) : ''}</span>
+      </div>`;
+      if(c.visible) html += detailHtml(c);
+      else if(c.detail || c.stdout || c.traceback || c.shape)
+        html += `<div class="detail">`
+          + shapeHtml(c)
+          + (c.detail ? `<div class="note">${esc(c.detail)}</div>` : '')
+          + (c.traceback ? `<div class="tb">${esc(c.traceback)}</div>` : '')
+          + outHtml(c) + `</div>`;
+    }
+    if(lv.clean) html += `<div class="case pass"><span class="mark">✓</span><span class="name">all ${lv.total} cases pass</span></div>`;
+  }
+  if(r.blind) html += `<div class="shape-note">exam mode — no case names, no tags, no expected values</div>`;
+  body.innerHTML = html || '<div class="empty good">Everything passes.</div>';
+  body.scrollTop = 0;
+}
+
+/** The operation sequence of a hidden case: names only, failing step marked. */
+function shapeHtml(c){
+  if(!c.shape || !c.shape.length) return '';
+  const step = c.step;   // 1-based
+  return '<div class="shape">' + c.shape.map((name, i) => {
+    const n = i + 1;
+    const cls = n === step ? 'op-bad' : (n < step ? 'op-ok' : 'op-todo');
+    return `<span class="${cls}">${esc(name)}</span>`;
+  }).join('<span class="op-arrow">→</span>')
+    + `<div class="shape-note">arguments and expected values stay hidden — this is the shape of the case</div></div>`;
+}
+
+function outHtml(c){
+  if(!c.stdout) return '';
+  return `<div class="out"><span class="lab">your output (print)</span><pre>${esc(c.stdout)}</pre></div>`;
+}
+
+$('#results-b').addEventListener('click', e => {
+  const row = e.target.closest('.case.hidden');
+  if(!row) return;
+  // In exam mode there is no id to reveal -- the row already shows all there is.
+  if(LAST && LAST.blind) return;
+  const next = row.nextElementSibling;
+  if(next && next.classList.contains('idbox')){ next.remove(); return; }
+  const box = document.createElement('div');
+  box.className = 'detail idbox';
+  box.innerHTML = `<div class="why2">case id <code>${row.dataset.id}</code> — the name hints at what it
+    checks, which is why it is hidden. Use it to flag a case you think is wrong:
+    <code>./pfs dispute ${row.dataset.id} "why"</code></div>`;
+  row.after(box);
+});
+
+function detailHtml(c){
+  let h = '<div class="detail">';
+  if(c.doc) h += `<div class="doc">${esc(c.doc)}</div>`;
+  for(const op of c.ops){
+    h += `<div class="op ${op.past?'past':'cur'}">${esc(op.call)}</div>`;
+    if(op.past) continue;
+    if(op.expected != null) h += `<div class="kv"><span class="k">expected</span><span class="exp">${esc(op.expected)}</span></div>`;
+    if(op.actual != null) h += `<div class="kv"><span class="k">you gave</span><span class="act">${esc(op.actual)}</span></div>`;
+    if(op.detail) h += `<div class="note">${esc(op.detail)}</div>`;
+    if(op.why) h += `<div class="why2">why: ${esc(op.why)}</div>`;
+    if(op.traceback) h += `<div class="tb">${esc(op.traceback)}</div>`;
+  }
+  return h + outHtml(c) + '</div>';
+}
+
+/* ---------------- worked solution ---------------- */
+let ANSWER_LEVEL = null;   // null = the whole thing
+
+function renderAnswer(level){
+  ANSWER_LEVEL = level;
+  const d = $('#doc');
+  const max = (STATE.problem && STATE.problem.max_level) || 4;
+  api('/api/answer' + (level ? '?level=' + level : '')).then(r => {
+    if(r.locked){ d.innerHTML = `<p class="warn">${esc(r.reason)}</p>`; return; }
+    if(!r.available){ d.innerHTML = `<p class="dim">${esc(r.reason)}</p>`; return; }
+    // Level pickers, so peeking at level 2 does not spoil level 4.
+    let bar = '<div class="ansbar">';
+    for(let n = 1; n <= max; n++)
+      bar += `<button class="anslvl${level === n ? ' on' : ''}" data-lvl="${n}">L${n}</button>`;
+    bar += `<button class="anslvl${level ? '' : ' on'}" data-lvl="0">All</button></div>`;
+    const note = r.provenance === 'slice'
+      ? '<p class="warn">Sliced from the finished solution — earlier levels may already be shaped by later ones.</p>'
+      : '';
+    d.innerHTML = bar + note
+      + `<pre class="answer">${esc(r.source)}</pre>`
+      + `<p class="dim">source: ${esc(r.path)}</p>`;
+    d.querySelectorAll('.anslvl').forEach(b => b.onclick = () => {
+      const n = +b.dataset.lvl;
+      renderAnswer(n === 0 ? null : n);
+    });
+    d.scrollTop = 0;
+  });
+}
+
+/* ---------------- unlock ---------------- */
+function toast(msg, plain){
+  $('#toast-msg').innerHTML = msg;
+  $('#toast').classList.remove('hide');
+  if(plain) $('#toast-x').textContent = 'OK';
+}
+$('#toast-x').onclick = () => $('#toast').classList.add('hide');
+
+function unlocked(n){
+  const lv = STATE.levels.find(l => l.number === n);
+  toast(`<b>Level ${n} unlocked</b> — ${esc(lv.title)}. Budget ${lv.budget[0]}–${lv.budget[1]} min.`);
+  $('#toast-x').textContent = 'Add the new stubs';
+  $('#toast-x').onclick = async () => {
+    // The server appends to the file on disk, so anything still sitting in the
+    // editor's debounce window would be overwritten by the reload below.
+    await save(true);
+    const r = await api('/api/stubs', {level:n});
+    // Only install the server's copy when it actually appended; on a refusal
+    // r.code is just the disk file and would clobber the editor buffer.
+    if(r.ok && r.code){
+      EDITOR.setValue(r.code); EDITOR.setCursor(EDITOR.lineCount(), 0);
+      $('#btn-stubs').disabled = true;
+    }
+    else if(!r.ok) toast(esc(r.message || r.error || 'nothing to add'), true);
+    $('#toast').classList.add('hide');
+    $('#toast-x').onclick = () => $('#toast').classList.add('hide');
+    await refreshState();
+  };
+}
+
+$('#btn-stubs').onclick = async () => {
+  await save(true);
+  const r = await api('/api/stubs', {});
+  if(r.ok && r.code){ EDITOR.setValue(r.code); $('#btn-stubs').disabled = true; }
+  if(!r.ok) toast(esc(r.message || r.error), true);
+  await refreshState();
+};
+
+/* ---------------- finish ---------------- */
+$('#btn-finish').onclick = async () => {
+  if(!STATE.session.finished && !confirm('Stop the clock and end this attempt?')) return;
+  await save(true);
+  const r = await api('/api/finish', {});
+  if(r.state){ STATE = r.state; paint(); clearInterval(TICK); $('#clock').textContent='done'; $('#clock').className='mono dim'; }
+  showDebrief(r.debrief);
+};
+
+function showDebrief(d){
+  const rows = d.levels.map(l => {
+    if(!l.cleared) return `<div class="drow"><span>L${l.level} <span class="t">${esc(l.title)}</span></span>
+      <span class="bad">not cleared</span><span></span><span class="dim mono">${l.budget[0]}–${l.budget[1]}m</span></div>`;
+    return `<div class="drow"><span>L${l.level} <span class="t">${esc(l.title)}</span></span>
+      <span class="good mono">${clock(l.cleared_at)}</span>
+      <span class="mono">took ${clock(l.took)}</span>
+      <span class="mono ${l.on_budget?'good':'warn'}">${l.on_budget?'on budget':'over'}</span></div>`;
+  }).join('');
+  const streaks = d.streaks.length ? `
+    <h3 style="margin-top:22px">Stuck streaks</h3>
+    <p class="dim" style="font-size:12.5px;margin-top:-4px">Runs in a row failing the same case. More than two means the later runs were guesses.</p>
+    ${d.streaks.map(s=>`<div class="drow"><span class="mono bad">${esc(s.case)}</span><span>${s.runs} runs</span><span class="mono">${clock(s.seconds)}</span><span></span></div>`).join('')}` : '';
+  const tags = d.unresolved_tags.length ? `
+    <h3 style="margin-top:22px">Still failing at the end</h3>
+    <p>${d.unresolved_tags.map(t=>`<code>${esc(t)}</code>`).join(' ')}</p>` : '';
+
+  $('#sheet').innerHTML = `
+    <h2>Debrief</h2>
+    <p class="sub">${esc(d.session_id)} · ${clock(d.elapsed_s)} of ${d.budget_minutes}:00 · ${d.runs} runs · score ~${d.score}/600</p>
+    ${rows}${streaks}${tags}
+    <div class="actions">
+      <button class="primary" id="d-close">Back to my code</button>
+      <button id="d-key">Read the answer key</button>
+      <button id="d-soln">See a worked solution</button>
+      <button id="d-again">Try again from scratch</button>
+    </div>`;
+  $('#modal').classList.add('on');
+  $('#d-close').onclick = () => $('#modal').classList.remove('on');
+  $('#d-key').onclick = () => { $('#modal').classList.remove('on'); renderDoc('decisions'); };
+  $('#d-soln').onclick = () => { $('#modal').classList.remove('on'); renderDoc('answer'); };
+  $('#d-again').onclick = async () => {
+    STATE = await api('/api/start', {problem: STATE.problem.key, minutes: d.budget_minutes});
+    TAB = 'task';   // the answer-key tab is gone in a live session
+    $('#modal').classList.remove('on');
+    $('#results-b').innerHTML = '<div class="empty">Fresh attempt. Run tests when you have something.</div>';
+    $('#bar').style.width='0%'; $('#tally').textContent='not run yet'; $('#score').textContent='';
+    enterApp();
+  };
+}
+$('#modal').onclick = e => { if(e.target.id === 'modal') $('#modal').classList.remove('on'); };
+$('#btn-run').onclick = runTests;
+$('#btn-run2').onclick = runTests;
+
+$('#btn-home').onclick = async () => {
+  const live = !STATE.session.finished;
+  if(live && !confirm('End this attempt and go back to the problem list?\n\nYour code is kept in workspace/, and retakes are unlimited.')) return;
+  if(DIRTY) await save(true);
+  const r = await api('/api/abandon', {});
+  clearInterval(TICK);
+  STATE = r;
+  renderStart(STATE.problems);
+};
+
+/* ---------------- python code intelligence ---------------- */
+/**
+ * Completions come from the server, which parses the buffer with Python's own
+ * `ast` -- real signatures, real docstrings, real types. Nothing is derived from
+ * the problem definition, so a locked level's operations cannot appear here.
+ */
+function pyHint(cm, callback){
+  const cur = cm.getCursor();
+  api('/api/complete', {code: cm.getValue(), line: cur.line + 1, col: cur.ch})
+    .then(r => {
+      const word = r.word || '';
+      const from = CodeMirror.Pos(cur.line, cur.ch - word.length);
+      showSignature(r.signature);
+      callback({
+        list: (r.completions || []).map(c => ({
+          text: c.name, displayText: c.name,
+          render(el){
+            el.innerHTML = '';
+            const n = document.createElement('span'); n.className = 'h-name'; n.textContent = c.name;
+            const d = document.createElement('span'); d.className = 'h-detail';
+            d.textContent = c.detail ? (c.detail.length > 46 ? c.detail.slice(0, 45) + '…' : c.detail) : '';
+            const k = document.createElement('span'); k.className = 'h-kind'; k.textContent = c.kind;
+            el.appendChild(n); el.appendChild(d); el.appendChild(k);
+          },
+        })),
+        from, to: cur,
+      });
+    })
+    .catch(() => callback({list: [], from: cur, to: cur}));
+}
+pyHint.async = true;
+
+/** The floating "you are typing argument N of f(a, b)" hint. */
+function showSignature(sig){
+  let el = $('#sighint');
+  if(!sig || !sig.label){ if(el) el.remove(); return; }
+  if(!el){ el = document.createElement('div'); el.id = 'sighint'; document.body.appendChild(el); }
+  const open = sig.label.indexOf('(');
+  const head = esc(sig.label.slice(0, open + 1));
+  const params = sig.label.slice(open + 1, sig.label.lastIndexOf(')')).split(/,\s*/);
+  const tail = esc(sig.label.slice(sig.label.lastIndexOf(')')));
+  el.innerHTML = head + params.map((p, i) =>
+      i === sig.active ? `<b>${esc(p)}</b>` : esc(p)).join(', ') + tail
+    + (sig.doc ? `<span class="sd">${esc(sig.doc)}</span>` : '');
+  const at = EDITOR.cursorCoords(true, 'page');
+  el.style.left = Math.min(at.left, window.innerWidth - 460) + 'px';
+  el.style.top = (at.bottom + 6) + 'px';
+}
+
+let SIG_T = null;
+function refreshSignature(){
+  clearTimeout(SIG_T);
+  SIG_T = setTimeout(() => {
+    if(!EDITOR) return;
+    const cur = EDITOR.getCursor();
+    api('/api/complete', {code: EDITOR.getValue(), line: cur.line + 1, col: cur.ch})
+      .then(r => showSignature(r.signature)).catch(() => {});
+  }, 120);
+}
+
+/** Syntax errors, compiled server-side and shown in the gutter as you type. */
+function pyLint(text, updateLinting, options, cm){
+  api('/api/check', {code: text}).then(r => {
+    updateLinting(cm, (r.errors || []).map(e => ({
+      from: CodeMirror.Pos(Math.max(0, e.line - 1), Math.max(0, e.col - 1)),
+      to:   CodeMirror.Pos(Math.max(0, e.line - 1), Math.max(0, e.col)),
+      message: e.msg, severity: 'error',
+    })));
+  }).catch(() => updateLinting(cm, []));
+}
+
+/* ---------------- resizable sidebar ---------------- */
+const LEFT_KEY = 'pfs.leftw';
+function applyLeftWidth(px){
+  const min = 260, max = Math.max(min, window.innerWidth - 420);
+  const w = Math.min(max, Math.max(min, px));
+  document.documentElement.style.setProperty('--leftw', w + 'px');
+  localStorage.setItem(LEFT_KEY, String(w));
+  if(EDITOR) EDITOR.refresh();
+  return w;
+}
+(function initSplitter(){
+  const bar = $('#split');
+  let dragging = false;
+  const move = e => { if(dragging) applyLeftWidth(e.clientX); };
+  const stop = () => {
+    if(!dragging) return;
+    dragging = false;
+    bar.classList.remove('dragging'); document.body.classList.remove('dragging');
+  };
+  bar.addEventListener('mousedown', e => {
+    dragging = true; e.preventDefault();
+    bar.classList.add('dragging'); document.body.classList.add('dragging');
+  });
+  bar.addEventListener('dblclick', () => {
+    localStorage.removeItem(LEFT_KEY);
+    document.documentElement.style.removeProperty('--leftw');
+    if(EDITOR) EDITOR.refresh();
+  });
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', stop);
+  // Keep the panes inside the window when it is resized under a saved pixel width.
+  window.addEventListener('resize', () => {
+    const cur = parseInt(localStorage.getItem(LEFT_KEY) || '0', 10);
+    if(cur) applyLeftWidth(cur);
+    if(EDITOR) EDITOR.refresh();
+  });
+})();
+
+/* ---------------- resizable results panel ---------------- */
+const RES_KEY = 'pfs.resulth';
+function applyResultHeight(px){
+  const wrap = $('#right').getBoundingClientRect();
+  const min = 120;
+  // Before the app is shown, #right has no height and the clamp would collapse a
+  // saved height to the minimum -- which silently discarded it on every reload.
+  const max = wrap.height > 200 ? wrap.height - 180 : Infinity;
+  const h = Math.min(max, Math.max(min, px));
+  document.documentElement.style.setProperty('--resulth', h + 'px');
+  localStorage.setItem(RES_KEY, String(h));
+  if(EDITOR) EDITOR.refresh();
+  return h;
+}
+(function initHSplit(){
+  const bar = $('#hsplit');
+  let dragging = false;
+  bar.addEventListener('mousedown', e => {
+    dragging = true; e.preventDefault();
+    bar.classList.add('dragging'); document.body.classList.add('vdragging');
+  });
+  bar.addEventListener('dblclick', () => {
+    localStorage.removeItem(RES_KEY);
+    document.documentElement.style.removeProperty('--resulth');
+    if(EDITOR) EDITOR.refresh();
+  });
+  document.addEventListener('mousemove', e => {
+    if(dragging) applyResultHeight($('#right').getBoundingClientRect().bottom - e.clientY);
+  });
+  document.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    bar.classList.remove('dragging'); document.body.classList.remove('vdragging');
+  });
+  window.addEventListener('resize', () => {
+    const cur = parseInt(localStorage.getItem(RES_KEY) || '0', 10);
+    if(cur) applyResultHeight(cur);
+  });
+})();
+
+/** Restore saved pane sizes once the layout actually exists. */
+function applySavedPanes(){
+  const w = parseInt(localStorage.getItem(LEFT_KEY) || '0', 10);
+  if(w) applyLeftWidth(w);
+  const h = parseInt(localStorage.getItem(RES_KEY) || '0', 10);
+  if(h) applyResultHeight(h);
+}
+
+/* ---------------- pop the statement into its own window ---------------- */
+let DOCWIN = null;
+$('#btn-pop').onclick = () => {
+  if(DOCWIN && !DOCWIN.closed){ DOCWIN.close(); return; }
+  DOCWIN = window.open(location.pathname + '?panel=doc', 'pfs-statement',
+                       'width=640,height=980,menubar=no,toolbar=no');
+  if(!DOCWIN){ toast('Your browser blocked the pop-up. Allow pop-ups for 127.0.0.1.', true); return; }
+  document.body.classList.add('popped');
+  if(EDITOR) setTimeout(() => EDITOR.refresh(), 120);
+  const watch = setInterval(() => {
+    if(!DOCWIN || DOCWIN.closed){
+      clearInterval(watch);
+      document.body.classList.remove('popped');
+      if(EDITOR) EDITOR.refresh();
+    }
+  }, 600);
+};
+window.addEventListener('beforeunload', () => { if(DOCWIN && !DOCWIN.closed) DOCWIN.close(); });
+
+/* ---------------- statement-only window ---------------- */
+async function bootDocWindow(){
+  document.body.classList.add('docwin');
+  $('#app').classList.add('on');
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => renderDoc(t.dataset.tab));
+  const tick = async () => {
+    let s;
+    try { s = await api('/api/state'); } catch (e) { return; }
+    if(!s.active){
+      $('#doc').innerHTML = '<p style="color:var(--ink-faint)">No attempt is running.</p>';
+      return;
+    }
+    const changed = !STATE || STATE.session.unlocked_level !== s.session.unlocked_level
+                           || STATE.session.finished !== s.session.finished;
+    STATE = s;
+    document.title = s.problem.title + ' — statement';
+    const hasLesson2 = !!(s.statement && s.statement.lesson_html);
+    $('#tab-lesson').style.display = hasLesson2 ? '' : 'none';
+    $('#tab-contract').style.display = s.contract_html ? '' : 'none';
+    $('#tab-decisions').style.display = s.session.finished ? '' : 'none';
+    $('#tab-answer').style.display = s.session.finished ? '' : 'none';
+    if(changed || !$('#doc').innerHTML) renderDoc(TAB);
+  };
+  await tick();
+  setInterval(tick, 2500);   // picks up an unlock without any cross-window plumbing
+}
+
+/* ---------------- boot ---------------- */
+(async function(){
+  if(new URLSearchParams(location.search).get('panel') === 'doc') return bootDocWindow();
+  STATE = await api('/api/state');
+  if(!STATE.active) renderStart(STATE.problems); else enterApp();
+})();
+</script>
+</body>
+</html>

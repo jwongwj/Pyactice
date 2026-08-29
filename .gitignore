@@ -1,0 +1,20 @@
+/workspace/
+/sessions/
+# Worked solutions are permanent local oracles (see solutions/README.md) but must
+# never ship. The bare *.py rule missed solutions/<key>/levelN.py -- the per-level
+# snapshot layout harness/answer.py actually prefers.
+/solutions/*.py
+/solutions/*/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# tests
+tests/node_modules/
+tests/shots/
+tests/package-lock.json
+
+# Machine-local permission grants with absolute paths. settings.json (the hooks)
+# IS tracked -- the session guard is a correctness mechanism, not a preference.
+.claude/settings.local.json

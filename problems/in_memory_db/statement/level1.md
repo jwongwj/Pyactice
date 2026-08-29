@@ -1,0 +1,34 @@
+# Scenario
+
+Your task is to implement a simplified version of an in-memory database.
+All operations that should be supported are listed below. Partial credit will be granted for each test passed, so
+run the tests often to receive partial credit for passed tests. Please check tests for requirements
+and argument types.
+
+### Implementation Tips
+
+Read the question all the way through before you start coding, but implement the operations and complete the
+levels one by one, not all together, keeping in mind that you will need to refactor to support additional functionality.
+Please, do not change the existing method signatures.
+
+## Task
+
+The database holds **records**. Each record is identified by a key and contains any number of
+**fields**, and each field holds a value:
+
+```plaintext
+{
+  "user-1": { "name": "Ada",  "role": "admin", "team": "core" },
+  "user-2": { "name": "Grace" }
+}
+```
+
+## Level 1 – Initial Design & Basic Functions
+
+- **SET(key, field, value)**
+  - Insert a field-value pair into the record associated with the key.
+  - If the field already exists, its value is replaced.
+- **GET(key, field)**
+  - Returns the value of the field, or nothing if the record or the field doesn't exist.
+- **DELETE(key, field)**
+  - Removes the field from the record. Returns whether a field was removed.
